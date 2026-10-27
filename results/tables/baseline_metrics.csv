@@ -1,0 +1,2 @@
+model_name,split,auroc,auprc,brier_score,log_loss,ece,threshold,sensitivity,specificity,ppv,npv,missed_malignant_FN,unnecessary_escalation_FP
+Constant Baseline,development_oof,0.5,0.37362637362637363,0.2340297065571791,0.6608575273573022,5.551115123125783e-17,0.37362637362637363,1.0,0.0,0.37362637362637363,0.0,0,285

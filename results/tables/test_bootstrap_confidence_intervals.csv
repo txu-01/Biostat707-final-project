@@ -1,0 +1,2 @@
+model_name,auroc_mean,auroc_95_ci,brier_mean,brier_95_ci
+Constant_Baseline,0.5,"[0.5000, 0.5000]",0.2327,"[0.2327, 0.2327]"

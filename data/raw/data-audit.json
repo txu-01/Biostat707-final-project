@@ -1,0 +1,23 @@
+{
+  "source": "https://archive.ics.uci.edu/static/public/17/breast+cancer+wisconsin+diagnostic.zip",
+  "checked_at_utc": "2026-10-27T12:52:08.097452+00:00",
+  "sha256": "D606AF411F3E5BE8A317A5A8B652B425AAF0FF38CA683D5327FFFF94C3695F4A",
+  "rows": 569,
+  "column_counts": [
+    32
+  ],
+  "labels": [
+    {
+      "label": "B",
+      "count": 357
+    },
+    {
+      "label": "M",
+      "count": 212
+    }
+  ],
+  "unique_ids": 569,
+  "duplicate_rows": 0,
+  "missing_cells": 0,
+  "invalid_numeric_cells": 0
+}
