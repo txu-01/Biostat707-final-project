@@ -16,3 +16,6 @@ env/
 
 # Jupyter
 .ipynb_checkpoints
+
+# Local fitted SVM objects (recreated by training code)
+models/svm/

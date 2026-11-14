@@ -1,0 +1,15 @@
+{
+  "created_utc": "2026-11-03T02:54:09.149854+00:00",
+  "passed": true,
+  "checks": [
+    "input and OOF hashes",
+    "455 OOF and 114 test IDs per model",
+    "official labels and folds",
+    "no ID overlap",
+    "finite [0,1] probabilities",
+    "threshold CSV roundtrip",
+    "test output hashes",
+    "saved model presence"
+  ],
+  "note": "No models refitted and no new test predictions generated during verification."
+}
