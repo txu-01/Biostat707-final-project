@@ -16,20 +16,22 @@ The intended application is an educational investigation of classification after
 | Wenqing Zhao | Decision tree |
 | Asher Xu | Linear-kernel and RBF-kernel SVM |
 
-Each model owner will implement training and tuning, produce standardized prediction outputs, interpret their model, and write the corresponding report section. All members will contribute to code review, discussion, and presentation. Each member will commit their own work from their own GitHub account and submit an individual contribution statement as required by the course.
+Each model owner remains responsible for explaining and reviewing their model, but the final comparison is run through one shared repeated nested-CV implementation (`src/final_analysis.py`). This prevents the project from becoming five unrelated fits and guarantees identical outer folds, tuning rules, metrics, and threshold handling. All members contribute to the cross-model interpretation, code review, discussion, and presentation. Each member will commit their own work from their own GitHub account and submit an individual contribution statement as required by the course.
 
 ### Tianyi Lu: Data preparation, shared splits, constant baseline, and evaluation pipeline
 
 Data preparation, stratified splitting, and the common evaluation framework are fully implemented and reproducible:
+- **Primary analysis:** All 569 records are evaluated with 10 repeats of stratified five-fold outer CV. Model tuning occurs within five-fold inner CV, using the same outer folds for every model.
 - **Unified splits:** Stratified 80% development ($N=455$) and 20% test ($N=114$) with random seed `707`. Stratified 5-fold cross-validation on the development set is saved in `data/processed/splits.csv`.
 - **Baseline model:** Constant probability baseline predicting marginal prevalence ($\hat{p} \approx 0.3736$) implemented in `src/baseline.py`.
 - **Shared evaluation:** Metric suite (`src/metrics.py`) providing AUROC, AUPRC, Brier score, log loss, 5-bin calibration curves, 95% sensitivity threshold locking on development OOF, 2,000 paired stratified bootstrap confidence intervals, and paired AUROC/Brier model differences.
-- **Current scope:** The committed comparison tables contain the constant baseline only. Final cross-model tables will be generated after all model owners provide validated OOF and held-out-test predictions.
+- **Current scope:** The repeated nested-CV comparison includes the baseline, unpenalized and ridge logistic regression, Elastic Net, decision tree, random forest, linear SVM, and RBF SVM. The original held-out comparison remains secondary.
+- **Instructor-requested sensitivity analyses:** Learning curves use training sizes 50, 100, 200, and 455. An Elastic Net analysis compares mean, SE, worst, and all feature sets.
 - **Team guide:** Detailed workflow and ingestion instructions are provided in `docs/TEAM_WORKFLOW.md`.
 
-### Wenqing Zhao: Planned decision tree analysis
+### Wenqing Zhao: Decision tree analysis
 
-The decision tree will be tuned using the shared stratified five-fold cross-validation folds. We will test 12 combinations of `max_depth` (`3`, `5`, `7`, `None`) and `min_samples_leaf` (`5`, `10`, `20`), selecting settings by mean validation AUROC. We will check for overfitting, generate development out-of-fold probabilities, and select a fixed threshold targeting at least 95% development sensitivity. We will also examine feature importance and compare the decision tree with other models using discrimination, calibration, sensitivity, and specificity. The final test set will not be used for tuning or threshold selection.
+The decision tree is tuned inside each outer-training set using 12 combinations of `max_depth` (`3`, `5`, `7`, `None`) and `min_samples_leaf` (`5`, `10`, `20`), selecting settings by mean inner-fold AUROC. Training-only out-of-fold probabilities determine the threshold targeting at least 95% sensitivity. The same nested design is used for all model families.
 
 
 ## Proposal
@@ -79,7 +81,8 @@ The repository is organized to ensure end-to-end reproducibility, clean separati
 |-- requirements.txt                 # Verified Python package versions
 |-- download-and-check-data.ps1      # PowerShell UCI download and audit script
 |-- scripts/
-|   `-- download_and_check_data.py   # Cross-platform Python download and audit script
+|   |-- download_and_check_data.py   # Cross-platform Python download and audit script
+|   `-- build_final_outputs.py       # Final figures, report draft, and presentation outline
 |-- data/
 |   |-- raw/
 |   |   |-- wdbc.data                # Original UCI data file (569 rows)
@@ -95,26 +98,34 @@ The repository is organized to ensure end-to-end reproducibility, clean separati
 |   |-- eda_table1.py                # Development set EDA and Table 1 generation
 |   |-- baseline.py                  # Constant-probability baseline model pipeline
 |   |-- metrics.py                   # Common evaluation functions, calibration, and bootstrap CI
-|   `-- evaluate_all.py              # Master multi-model evaluation and curve plotter
+|   |-- evaluate_all.py              # Secondary 80/20 multi-model evaluator
+|   `-- final_analysis.py            # Primary nested CV, learning curves, feature-set analysis
 |-- docs/
 |   |-- TEAM_WORKFLOW.md             # Guide for teammates to load splits and output predictions
 |   |-- GROUP_HANDOFF_MESSAGE.md     # Copy-ready WeChat handoff messages
 |   |-- data_and_cohort.md           # Draft of Data & Cohort final report section
-|   `-- common_evaluation.md         # Draft of Common Evaluation final report section
+|   |-- common_evaluation.md         # Draft of Common Evaluation final report section
+|   |-- FINAL_REPORT_DRAFT.md        # Integrated report draft generated from final results
+|   |-- PRESENTATION_OUTLINE.md      # 7.5-minute presentation structure
+|   `-- AI_USE_REFLECTION_TEMPLATE.md # Prompts for each member's own reflection
 |-- tests/                           # Automated metric and prediction-validation checks
 `-- results/
-    |-- figures/                     # EDA plots, calibration, ROC/PR, and clinical tradeoff curves
-    |-- tables/                      # Table 1 baseline cohort, OOF metrics, and test comparison
-    `-- predictions/                 # Standardized model prediction CSV outputs
+    |-- final_nested/                # Primary results, sensitivity analyses, and final figures
+    |-- svm/                         # Original SVM development/test and nested outputs
+    |-- figures/                     # Secondary 80/20 figures
+    |-- tables/                      # Secondary 80/20 comparison tables
+    `-- predictions/                 # Standardized 80/20 model prediction files
 ```
 
-The shared data, split, EDA, baseline, and evaluation components are implemented. Model-specific pipelines and predictions remain the responsibility of their assigned owners. The current aggregate results therefore contain only the constant baseline and are not the final team comparison.
+The primary repeated nested-CV analysis and both instructor-requested sensitivity analyses are implemented. The final document drafts are generated from the committed result tables; model owners must still review their sections and supply their own contribution and AI-use reflections.
 
-## Planned analysis and reproducibility
+## Final analysis and reproducibility
 
-We will reserve a stratified 20% test set and use the remaining 80% for development, with random seed 707 and shared stratified five-fold cross-validation. All preprocessing, tuning, and SVM probability calibration will occur within the relevant training subsets. Test labels will not be used for model selection, threshold selection, or recalibration.
+The primary comparison uses all 569 records in 10 repeats of stratified five-fold outer CV. Hyperparameters are selected inside each outer-training set using stratified five-fold inner CV. Preprocessing, model tuning, SVM probability calibration, and threshold selection occur exclusively inside the relevant training data.
 
-Primary evaluation will use test AUROC. Secondary evaluation will include AUPRC, Brier score, log loss, calibration plots, and classification metrics at development-selected thresholds. A development sensitivity target of 95% is exploratory, not a clinical standard or a guarantee of test sensitivity. The proposal specifies uncertainty estimates and interpretation limits.
+Primary evaluation summarizes repeated outer-CV AUROC, AUPRC, Brier score, log loss, calibration, and classification metrics at training-selected thresholds. The original stratified 80/20 split is retained only as a secondary one-shot check. The 95% training sensitivity target is exploratory, not a clinical standard or a guarantee of validation sensitivity. Repeats share the same records; their SD describes split sensitivity and is not treated as a confidence interval from ten independent datasets.
+
+The unpenalized logistic model generated extremely large standardized coefficients and nearly all-zero/all-one outer-fold probabilities, consistent with separation. As prespecified in the proposal, it is retained as an unstable comparator and ridge logistic regression (`C=1`) is used as the stable full-feature logistic comparator.
 
 The shared pipeline was verified with Python 3.14.5 and the package versions pinned in `requirements.txt`. Install them with:
 
@@ -129,7 +140,9 @@ python3 src/data_prep.py
 MPLBACKEND=Agg python3 src/eda_table1.py
 PYTHONPATH=src python3 src/baseline.py
 MPLBACKEND=Agg PYTHONPATH=src python3 src/evaluate_all.py
+PYTHONPATH=src python3 src/final_analysis.py nested
+PYTHONPATH=src python3 src/final_analysis.py learning-curves
+PYTHONPATH=src python3 src/final_analysis.py feature-sets
+MPLBACKEND=Agg python3 scripts/build_final_outputs.py
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
-
-The held-out comparison is provisional until the remaining model owners add their standardized OOF and test prediction files.

@@ -21,18 +21,22 @@ To avoid relying on an arbitrary threshold or an uncalibrated accuracy score, al
 - **Quantile Calibration Curves**: Assessed using 5 equal-frequency bins. Expected Calibration Error (ECE) summarizes the frequency-weighted absolute deviation between bin mean prediction and observed malignancy frequency.
 
 ### 1.3 Clinical Decision Thresholds
-Rather than assuming a default cutoff of $p = 0.5$ (which implicitly assigns equal utility to false positives and false negatives), we select a **pre-specified exploratory operating point targeting $\ge 95\%$ sensitivity on development out-of-fold predictions**. This target is not an established clinical standard.
-- Once determined on development OOF, this numerical threshold is **strictly locked** and transferred without modification to the held-out test cohort.
-- Classification metrics evaluated at this threshold include: True Positives (TP), False Positives (FP), False Negatives (FN), True Negatives (TN), Sensitivity, Specificity, Positive Predictive Value (PPV), and Negative Predictive Value (NPV).
+Rather than assuming a default cutoff of $p = 0.5$ (which implicitly assigns equal utility to false positives and false negatives), we select a **pre-specified exploratory operating point targeting $\ge 95\%$ sensitivity using predictions generated entirely inside each outer-training set**. This target is not an established clinical standard.
+- Within every repeated nested-CV outer fold, the threshold is selected from inner out-of-fold predictions and transferred without modification to the corresponding outer validation fold.
+- The original development-selected threshold is also transferred unchanged to the secondary held-out test analysis.
+- Classification metrics include: True Positives (TP), False Positives (FP), False Negatives (FN), True Negatives (TN), Sensitivity, Specificity, Positive Predictive Value (PPV), and Negative Predictive Value (NPV).
 
-### 1.4 Statistical Uncertainty
-- To account for sampling variability without inflating confidence, we employ **2,000 paired, class-stratified bootstrap resamples** of the held-out evaluation set to estimate 95% percentile confidence intervals for AUROC, Brier score, and paired model contrasts. When the full-feature logistic model is available, it is the prespecified comparator; before other model predictions arrive, no pairwise contrast can be estimated.
+### 1.4 Primary repeated nested cross-validation
+- The primary comparison uses all 569 records in **10 repeats of stratified five-fold outer CV**. Hyperparameters are selected using five-fold inner CV. Every model receives the same outer splits.
+- Repeat-level metrics pool the five outer validation folds so that each record contributes exactly once per repeat.
+- Paired differences are computed within repeat against the stable ridge logistic comparator. Because repeats reuse the same records, their SD and range describe split sensitivity and are not treated as confidence intervals from ten independent samples.
+- The original 114-record held-out analysis and its 2,000 paired class-stratified bootstrap resamples remain a secondary check. Those bootstrap intervals condition on one development/test split and do not capture training or model-selection variability.
 
 ---
 
 ## 2. Constant-Probability Baseline Benchmark
 
-The constant baseline model predicts the marginal training-set malignancy proportion for every record:
+The constant baseline model predicts the malignancy proportion of the relevant training subset for every outer validation record. In the original development split this is:
 $$\hat{p}_{\text{baseline}} = \bar{y}_{\text{train}} = \frac{170}{455} \approx 0.3736$$
 
 ### Theoretical and Empirical Performance:
@@ -64,4 +68,4 @@ In a hypothetical post-FNA review-prioritization setting, false negatives and fa
    - In a future validated workflow, this could correspond to a potentially unnecessary escalation for additional review or testing.
    - Excessive false-positive rates could reduce practical usefulness, but downstream actions and costs cannot be inferred from this dataset.
 
-Our unified evaluation pipeline visualizes counts of malignant records below the threshold and benign records above it (`results/figures/clinical_threshold_tradeoffs.png`). These counts support model comparison but should not be interpreted as demonstrated patient outcomes or clinical procedures.
+The primary counts are stored in `results/final_nested/repeat_metrics.csv`; the secondary held-out visualization remains in `results/figures/clinical_threshold_tradeoffs.png`. These counts support model comparison but should not be interpreted as demonstrated patient outcomes or clinical procedures.
