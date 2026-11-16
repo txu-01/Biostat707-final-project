@@ -6,11 +6,11 @@
 - Thirty nuclear-image predictors: mean, SE, and worst summaries.
 - Question: do nonlinear classifiers offer a meaningful advantage over interpretable linear models?
 
-## Slide 2 — Why we changed the validation plan (60 seconds)
+## Slide 2 — Validation plan (60 seconds)
 
-- Expected AUROC is near 0.99, so a 114-record test set cannot resolve tiny differences.
-- Primary analysis: common 10×5 repeated nested CV on all 569 records.
-- Original 80/20 split retained only as a secondary check.
+- Common 10×5 repeated nested CV uses all 569 records.
+- Inner CV handles model selection; outer CV estimates performance.
+- Identical outer folds make the model comparisons paired and fair.
 
 ## Slide 3 — Models and leakage prevention (60 seconds)
 
@@ -43,7 +43,7 @@
 
 ## Q&A preparation
 
-- Why repeated nested CV instead of one train/test split?
+- Why repeated nested CV for this small dataset?
 - Were preprocessing and calibration kept inside folds?
 - Why is the 95% sensitivity threshold exploratory?
 - Does the best numerical AUROC justify a more complex model?

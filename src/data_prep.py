@@ -1,16 +1,11 @@
 """
 data_prep.py
-Prepares clean dataset and generates fixed, stratified development/test and 5-fold CV splits.
+Prepares the clean full-cohort dataset used by repeated nested cross-validation.
 BIOSTAT 707 Final Project.
 """
 
 import os
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold
-
-# Fixed project seed
-RANDOM_SEED = 707
 
 BASE_FEATURES = [
     "radius",
@@ -47,36 +42,6 @@ def load_and_clean_raw(raw_path="data/raw/wdbc.data"):
     df = df[ordered_cols]
     
     return df
-
-def generate_splits(df, seed=RANDOM_SEED):
-    """
-    Generate:
-    - 80% development set / 20% test set (stratified by diagnosis, seed=707)
-    - Stratified 5-fold CV on the development set (seed=707)
-    """
-    dev_idx, test_idx = train_test_split(
-        df.index,
-        test_size=0.20,
-        random_state=seed,
-        stratify=df["target"]
-    )
-
-    splits_df = df[["id", "diagnosis", "target"]].copy()
-    splits_df["split"] = ""
-    splits_df["cv_fold"] = -1
-
-    splits_df.loc[dev_idx, "split"] = "development"
-    splits_df.loc[test_idx, "split"] = "test"
-
-    # Stratified 5-fold CV on development set
-    dev_subset = splits_df.loc[dev_idx]
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
-
-    for fold, (_, val_pos) in enumerate(skf.split(dev_subset, dev_subset["target"])):
-        val_orig_idx = dev_subset.index[val_pos]
-        splits_df.loc[val_orig_idx, "cv_fold"] = fold
-
-    return splits_df
 
 def generate_data_dictionary(df, output_path="data/processed/data_dictionary.md"):
     lines = [
@@ -129,30 +94,19 @@ def run_pipeline():
     clean_df.to_csv(clean_csv_path, index=False)
     print(f"Saved clean dataset to {clean_csv_path} (shape: {clean_df.shape})")
 
-    print("\nStep 2: Generating stratified development/test and 5-fold CV splits...")
-    splits_df = generate_splits(clean_df, seed=RANDOM_SEED)
-    splits_csv_path = os.path.join(processed_dir, "splits.csv")
-    splits_df.to_csv(splits_csv_path, index=False)
-    
-    # Also save at data/splits.csv for convenience
-    splits_df.to_csv("data/splits.csv", index=False)
-    print(f"Saved splits to {splits_csv_path} and data/splits.csv")
-
-    print("\nSplit verification:")
-    split_summary = splits_df.groupby(["split", "diagnosis"]).size().unstack(fill_value=0)
-    split_summary["Total"] = split_summary.sum(axis=1)
-    split_summary["% Malignant"] = (split_summary["M"] / split_summary["Total"] * 100).round(2)
-    print(split_summary)
-
-    print("\nDevelopment 5-Fold CV verification:")
-    dev_folds = splits_df[splits_df["split"] == "development"].groupby(["cv_fold", "diagnosis"]).size().unstack()
-    dev_folds["Total"] = dev_folds.sum(axis=1)
-    print(dev_folds)
+    print("\nStep 2: Verifying the full analysis cohort...")
+    if len(clean_df) != 569 or clean_df["id"].duplicated().any():
+        raise ValueError("Expected 569 rows with unique record IDs.")
+    if clean_df["target"].value_counts().to_dict() != {0: 357, 1: 212}:
+        raise ValueError("Unexpected target counts.")
+    if not clean_df[FEATURE_NAMES].notna().all().all():
+        raise ValueError("Predictors contain missing values.")
+    print("Verified 569 records: 357 benign and 212 malignant.")
 
     print("\nStep 3: Generating data dictionary...")
     generate_data_dictionary(clean_df)
 
-    print("\n[SUCCESS] Data preparation and shared split generation complete.")
+    print("\n[SUCCESS] Full-cohort data preparation complete.")
 
 if __name__ == "__main__":
     run_pipeline()

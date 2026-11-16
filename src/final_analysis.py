@@ -1,11 +1,11 @@
 """Unified analyses requested in the preliminary BIOSTAT 707 feedback.
 
-The primary analysis is repeated nested cross-validation on all 569 records.
-The original 80/20 split remains a secondary, one-shot sensitivity analysis.
+The primary and only model-comparison analysis is repeated nested
+cross-validation on all 569 records.
 
 This module deliberately centralizes the validation protocol while keeping the
 prespecified model families and tuning grids from the proposal.  It also
-provides two secondary analyses requested by the instructor:
+provides two additional analyses requested by the instructor:
 
 * learning curves at training sizes 50, 100, 200, and 455; and
 * a mean/SE/worst/all feature-set comparison using Elastic Net.
@@ -681,7 +681,7 @@ def fixed_parameter_oof_threshold(
 
 
 def run_learning_curves(data: pd.DataFrame, output: Path, models: list[str]):
-    """Learning curves on common outer folds without repeatedly opening the old test set."""
+    """Learning curves evaluated on the common outer folds."""
 
     rows = []
     y_all = data["target"].to_numpy(dtype=int)

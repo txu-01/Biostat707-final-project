@@ -1,7 +1,0 @@
-{
-  "created_utc": "2026-11-03T02:50:39.335641+00:00",
-  "models": [
-    "Linear_SVM",
-    "RBF_SVM"
-  ]
-}

@@ -196,8 +196,6 @@ In response to preliminary feedback, the primary comparison used all 569 records
 
 Within each outer-training set, we generated inner out-of-fold probabilities and selected the highest threshold achieving at least 95% training sensitivity. That threshold was then applied unchanged to the corresponding outer validation fold. Repeat-level metrics pooled the five outer validation folds, so every record contributed once per repeat.
 
-The original stratified 80/20 split was retained only as a secondary one-shot check. Its bootstrap intervals are conditional on that single split and are not the primary evidence.
-
 ### Primary results
 
 Values are mean ± SD across the ten repeated outer-CV estimates. Repeats share records and are not ten independent datasets; SD describes split sensitivity rather than population-level uncertainty.
@@ -225,7 +223,6 @@ Near-ceiling AUROC means that model ranking is sensitive to a small number of re
 - Repeated cross-validation reduces dependence on one split but does not create new independent patients.
 - The 95% sensitivity target is exploratory and is not an established clinical operating point.
 - Feature importance can be redistributed among correlated predictors.
-- The original 114-record test analysis is secondary and its intervals condition on one development/test split.
 
 ### AI use disclosure — team must complete in first person
 
@@ -236,7 +233,7 @@ AI-assisted tools were used for parts of code implementation, debugging, validat
 From the repository root:
 
 ```bash
-python3 -m pip install -r requirements-svm.txt
+python3 -m pip install -r requirements.txt
 PYTHONPATH=src python3 src/final_analysis.py nested
 PYTHONPATH=src python3 src/final_analysis.py learning-curves
 PYTHONPATH=src python3 src/final_analysis.py feature-sets
@@ -256,11 +253,11 @@ def build_presentation_outline():
 - Thirty nuclear-image predictors: mean, SE, and worst summaries.
 - Question: do nonlinear classifiers offer a meaningful advantage over interpretable linear models?
 
-## Slide 2 — Why we changed the validation plan (60 seconds)
+## Slide 2 — Validation plan (60 seconds)
 
-- Expected AUROC is near 0.99, so a 114-record test set cannot resolve tiny differences.
-- Primary analysis: common 10×5 repeated nested CV on all 569 records.
-- Original 80/20 split retained only as a secondary check.
+- Common 10×5 repeated nested CV uses all 569 records.
+- Inner CV handles model selection; outer CV estimates performance.
+- Identical outer folds make the model comparisons paired and fair.
 
 ## Slide 3 — Models and leakage prevention (60 seconds)
 
@@ -293,7 +290,7 @@ def build_presentation_outline():
 
 ## Q&A preparation
 
-- Why repeated nested CV instead of one train/test split?
+- Why repeated nested CV for this small dataset?
 - Were preprocessing and calibration kept inside folds?
 - Why is the 95% sensitivity threshold exploratory?
 - Does the best numerical AUROC justify a more complex model?
