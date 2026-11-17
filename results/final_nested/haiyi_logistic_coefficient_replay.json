@@ -1,0 +1,32 @@
+{
+  "software": {
+    "numpy": "2.5.3",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1"
+  },
+  "training": "Same outer-training IDs, selected parameters and outer-fit seeds as the archived team analysis.",
+  "prediction_check": {
+    "Elastic_Net": {
+      "outer_fits": 50,
+      "predicted_records": 5690,
+      "probabilities_within_1e_7": 5690,
+      "max_abs_probability_difference": 4.773959005888173e-14,
+      "convergence_warnings": 0
+    },
+    "Logistic_Regression": {
+      "outer_fits": 50,
+      "predicted_records": 5690,
+      "probabilities_within_1e_7": 5687,
+      "max_abs_probability_difference": 1.0,
+      "convergence_warnings": 0
+    },
+    "Ridge_Logistic": {
+      "outer_fits": 50,
+      "predicted_records": 5690,
+      "probabilities_within_1e_7": 5690,
+      "max_abs_probability_difference": 9.209855100777986e-12,
+      "convergence_warnings": 0
+    }
+  }
+}
