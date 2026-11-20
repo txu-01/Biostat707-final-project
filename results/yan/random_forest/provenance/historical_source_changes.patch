@@ -1,0 +1,1508 @@
+diff --git a/scripts/yan/run.py b/scripts/yan/run.py
+new file mode 100644
+index 0000000..093e96d
+--- /dev/null
++++ b/scripts/yan/run.py
+@@ -0,0 +1,15 @@
++"""Run from any working directory: python scripts/yan/run.py audit|pilot|run|verify|report."""
++from pathlib import Path
++import os
++import sys
++
++ROOT = Path(__file__).resolve().parents[2]
++sys.path.insert(0, str(ROOT / "src"))
++os.environ.setdefault("MPLBACKEND", "Agg")
++os.environ.setdefault("OMP_NUM_THREADS", "1")
++os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
++os.environ.setdefault("MKL_NUM_THREADS", "1")
++
++if __name__ == "__main__":
++    from yan.random_forest.train import main
++    main()
+diff --git a/src/yan/random_forest/README.md b/src/yan/random_forest/README.md
+new file mode 100644
+index 0000000..d9d10cb
+--- /dev/null
++++ b/src/yan/random_forest/README.md
+@@ -0,0 +1,61 @@
++# Random Forest personal review implementation
++
++This is an RF-only fresh-run adapter to the unchanged shared analysis core.
++The model is still named Random_Forest. The results/yan/random_forest directory
++contains review and provenance artifacts awaiting team integration, not a second
++formal model entry.
++
++From the repository root, using Python 3.12:
++
++    python -m pip install -r requirements.txt
++    python -m pip install -r src/yan/random_forest/requirements.txt
++    python scripts/yan/run.py audit
++    python scripts/yan/run.py pilot --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py run --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py verify --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py report --output results/yan/random_forest/reproduction
++    python src/yan/random_forest/verify.py --output results/yan/random_forest/reproduction
++
++The delivered default output already contains the original cloud run.
++Use a new subdirectory for a fresh reproduction on another machine. Identical
++run fingerprints are required to reuse any checkpoint. The fingerprint covers
++training code, shared code, raw/clean data, protocol, exact environment and
++reference inputs. Cross-platform replays must use a new output directory.
++
++The initial pilot uses 16 candidates x 5 inner folds x 500 trees plus a final
++500-tree refit. It is reused as outer repeat 1, fold 0 in the full run after
++validation. run completes the remaining 49 outer folds. Two outer tasks run
++concurrently; every forest and native thread pool uses one thread.
++
++Shared functions reused:
++
++- final_analysis.load_data and _outer_split: ordering and outer CV;
++- final_analysis.MODEL_GRIDS and make_model: fixed 16-setting grid and 500-tree RF;
++- metrics.select_threshold_target_sensitivity: selected-inner-OOF threshold;
++- final_analysis.summarize_prediction_rows: row thresholds and repeat pooling;
++- metrics.compute_calibration_curve: per-repeat quantile-bin calibration.
++
++The loop around these functions records additional diagnostics missing from
++the shared runner. It preserves its inner splits, candidate/final seeds and
++exact-tie selection rule. The only estimator execution setting changed is
++n_jobs from -1 to 1, with outer-task parallelism instead.
++It never calls the all-model driver, SVM importer or shared report builder.
++It never reads archived RF predictions/metrics/models.
++
++Additional checks, with the default delivered artifacts and without training:
++
++    python src/yan/random_forest/verify.py
++    python src/yan/random_forest/test_checks.py
++
++The focused tests exercise ties, class-column lookup, mismatched labels/folds,
++duplicate IDs, inner/outer isolation and checkpoints from a different run.
++The full verifier also checks the 250 selected inner-fold AUROCs against the
++exported selected OOF predictions and compares all checkpoint payloads with
++their exported CSV records.
++
++Integration: after review, replace the previous Random_Forest entry once in
++the shared prediction collection. Do not append this as a second RF model or
++mix old/new folds. No integration or publication is performed by this adapter.
++
++Source data: Wolberg et al. (1993), Breast Cancer Wisconsin (Diagnostic), UCI,
++https://doi.org/10.24432/C5DW2B , CC BY 4.0.
+diff --git a/src/yan/random_forest/__init__.py b/src/yan/random_forest/__init__.py
+new file mode 100644
+index 0000000..1e3bfde
+--- /dev/null
++++ b/src/yan/random_forest/__init__.py
+@@ -0,0 +1 @@
++"""Yan's Random Forest review artifacts; not a second formal comparison set."""
+diff --git a/src/yan/random_forest/audit.py b/src/yan/random_forest/audit.py
+new file mode 100644
+index 0000000..190e4ad
+--- /dev/null
++++ b/src/yan/random_forest/audit.py
+@@ -0,0 +1,164 @@
++"""Read-only audits of shared inputs, actual record assignments and source versions."""
++from pathlib import Path
++import hashlib
++import importlib.metadata
++import json
++import platform
++import subprocess
++
++import numpy as np
++import pandas as pd
++from sklearn.model_selection import StratifiedKFold
++from final_analysis import load_data, _outer_split, FEATURE_NAMES, MODEL_GRIDS
++from data_prep import load_and_clean_raw
++
++ROOT = Path(__file__).resolve().parents[3]
++MODEL = "Random_Forest"
++OUT = ROOT / "results/yan/random_forest"
++REFERENCES = ("Logistic_Regression", "Ridge_Logistic", "Elastic_Net", "Linear_SVM", "RBF_SVM")
++TRAINING_FILES = (
++    "src/yan/random_forest/train.py", "src/yan/random_forest/audit.py",
++    "src/yan/random_forest/__init__.py", "scripts/yan/run.py",
++    "src/final_analysis.py", "src/data_prep.py", "src/metrics.py", "requirements.txt",
++)
++INPUTS = ("data/raw/wdbc.data", "data/processed/wdbc_clean.csv", "707-proposal.md",
++          "docs/TEAM_WORKFLOW.md", "docs/common_evaluation.md", "README.md")
++PACKAGES = ("numpy", "pandas", "scikit-learn", "scipy", "matplotlib", "tabulate",
++            "joblib", "threadpoolctl")
++
++
++def sha(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def canonical(value):
++    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
++
++
++def digest(value):
++    return hashlib.sha256(canonical(value).encode()).hexdigest()
++
++
++def write_json(path, value):
++    path = Path(path)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    tmp = path.with_suffix(path.suffix + ".tmp")
++    tmp.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n",
++                   encoding="utf-8")
++    tmp.replace(path)
++
++
++def git(*args):
++    return subprocess.check_output(["git", "-C", str(ROOT), *args], text=True).strip()
++
++
++def data_and_splits():
++    data = load_data()
++    assert data.columns.tolist() == ["id", "diagnosis", "target", *FEATURE_NAMES]
++    assert len(data) == 569 and data.id.is_unique
++    assert data.diagnosis.isin(["M", "B"]).all()
++    assert np.array_equal(data.target, data.diagnosis.eq("M").astype(int))
++    assert data.target.value_counts().to_dict() == {0: 357, 1: 212}
++    assert len(FEATURE_NAMES) == 30 and len(set(FEATURE_NAMES)) == 30
++    assert np.isfinite(data[FEATURE_NAMES].to_numpy()).all()
++    assert data[FEATURE_NAMES].notna().all().all()
++    raw = load_and_clean_raw(ROOT / "data/raw/wdbc.data").sort_values("id").reset_index(drop=True)
++    pd.testing.assert_frame_equal(data, raw, check_exact=False, rtol=1e-14, atol=1e-14)
++    assert not raw.duplicated().any()
++    outer, inner = [], []
++    for repeat in range(1, 11):
++        for fold, (tr, va) in enumerate(_outer_split(data, repeat - 1, 5)):
++            assert not np.intersect1d(tr, va).size
++            assert len(tr) + len(va) == len(data)
++            outer.extend(dict(repeat=repeat, fold=fold, id=int(data.id.iloc[i]),
++                              y_true=int(data.target.iloc[i])) for i in va)
++            cv = StratifiedKFold(5, shuffle=True, random_state=1707 + 100 * (repeat - 1) + fold)
++            for infold, (a, b) in enumerate(cv.split(data.iloc[tr][FEATURE_NAMES], data.target.iloc[tr])):
++                assert not np.intersect1d(tr[a], tr[b]).size
++                assert not np.intersect1d(tr[b], va).size
++                assert np.array_equal(np.sort(np.r_[tr[a], tr[b]]), np.sort(tr))
++                inner.extend(dict(repeat=repeat, fold=fold, inner_fold=infold,
++                                  id=int(data.id.iloc[i]), y_true=int(data.target.iloc[i])) for i in tr[b])
++    return data, pd.DataFrame(outer), pd.DataFrame(inner)
++
++
++def align_reference(reference, expected, name):
++    """Require the complete key set and labels, not just equal fold counts."""
++    keys = ["repeat", "id"]
++    need = {*keys, "fold", "y_true", "y_prob", "threshold", "model"}
++    if not need.issubset(reference) or set(reference.model) != {name}:
++        raise ValueError(f"{name}: wrong schema/model")
++    if len(reference) != 5690 or reference.duplicated(keys).any():
++        raise ValueError(f"{name}: incomplete or duplicate rows")
++    got = reference.sort_values(keys).reset_index(drop=True)
++    exp = expected.sort_values(keys).reset_index(drop=True)
++    pd.testing.assert_frame_equal(got[["repeat", "id", "fold", "y_true"]],
++                                  exp[["repeat", "id", "fold", "y_true"]], check_dtype=False)
++    for col in ["y_prob", "threshold"]:
++        if not np.isfinite(got[col]).all() or not got[col].between(0, 1).all():
++            raise ValueError(f"{name}: invalid {col}")
++    if not got.groupby(["repeat", "fold"]).threshold.nunique().eq(1).all():
++        raise ValueError(f"{name}: threshold varies within fold")
++    return got
++
++
++def environment():
++    return dict(python=platform.python_version(), platform=platform.platform(),
++                packages={p: importlib.metadata.version(p) for p in PACKAGES})
++
++
++def audit(out=OUT):
++    out.mkdir(parents=True, exist_ok=True)
++    data, outer, inner = data_and_splits()
++    refs = {}
++    for name in REFERENCES:
++        path = ROOT / f"results/final_nested/predictions/{name}.csv"
++        if path.exists():
++            align_reference(pd.read_csv(path), outer, name)
++            refs[name] = dict(status="matched all 5690 ID/label/repeat/fold keys",
++                              path=str(path.relative_to(ROOT)), sha256=sha(path))
++        else:
++            refs[name] = dict(status="not available; not checked")
++    sources = {}
++    for ref, path in [
++        ("origin/Haiyi-branches", "src/final_analysis.py"),
++        ("origin/Haiyi-branches", "scripts/build_haiyi_logistic_coefficients.py"),
++        ("origin/Haiyi-branches", "docs/HAIYI_XIONG_REPORT_SECTION.md"),
++        ("origin/asher/svm-analysis", "scripts/run_svm_nested.py"),
++        ("origin/asher/svm-analysis", "src/train_svm.py"),
++        ("origin/asher/svm-analysis", "src/data_prep.py"),
++    ]:
++        try:
++            contents = git("show", f"{ref}:{path}")
++            sources[f"{ref}:{path}"] = dict(commit=git("rev-parse", ref),
++                sha256=hashlib.sha256(contents.encode()).hexdigest())
++        except subprocess.CalledProcessError:
++            sources[f"{ref}:{path}"] = dict(status="not available; not checked")
++    rows = [
++        ("Data/features", "Shared load_data sorts by ID; 30 ordered features", "Reuse, compare raw/clean and M/B labels", "yes", "none"),
++        ("Outer CV", "Shared _outer_split; seed 707+r; 1-based repeat/0-based fold", "Reuse and match every ID against available regression/SVM files", "yes", "none"),
++        ("Inner CV", "Regression/shared: 1707+100*r+f; Asher: 1707+5*r+f", "Use shared/regression seed rule; retain model-specific seed evidence", "yes", "SVM inner partitions differ in repeats 2-10; do not claim identical inner folds"),
++        ("Threshold", "Selected candidate inner OOF; highest p with sensitivity>=.95", "Reuse select_threshold_target_sensitivity; save selected OOF", "yes", "OOF used for selection is not independent generalization performance"),
++        ("Metrics", "Shared summarize_prediction_rows pools five folds; row thresholds", "Reuse, independently recompute exported metrics", "yes", "Generic evaluate_predictions(None) retunes; never call it here"),
++        ("SVM legacy summary", "Asher run_svm_nested.py averages fold metrics", "Use final main pooled-record summary rule", "yes", "Legacy SVM branch repeat tables conflict with pooled-AUROC rule; final main recomputes from predictions"),
++        ("Undefined ratios", "Generic metrics.py fills undefined ratios with 0; final summary uses NaN for PPV/NPV", "Use final summary; export undefined as blank", "yes", "Generic helper is not used for outer evaluation"),
++        ("RF", "Shared make_model; 500 trees, 16 settings, raw scale", "Reuse RF factory with n_jobs=1; parallelize outer tasks only", "yes", "none"),
++        ("Resume", "Shared resume counts unique IDs only", "New run fingerprint and full per-fold checkpoint validation", "yes", "Existing RF outputs/checkpoints never consumed"),
++        ("Personal directory", "TEAM_WORKFLOW discourages separate formal model sets", "User-authorized yan review artifacts pending integration", "yes", "Team must replace Random_Forest once, not add duplicate model"),
++        ("Ridge comparator", "common_evaluation and final report document unstable unpenalized fit", "Compare only aligned archived Ridge_Logistic predictions", "yes", "Team should explain numerical/separation fallback; no solver warnings alone establish failure"),
++    ]
++    pd.DataFrame(rows, columns=["check", "existing", "execution", "proposal", "open_issue"]).to_csv(
++        out / "consistency_checks.csv", index=False)
++    outer.to_csv(out / "outer_fold_assignments.csv", index=False)
++    inner.to_csv(out / "inner_fold_assignments.csv", index=False)
++    info = dict(base_commit=git("rev-parse", "HEAD"), environment=environment(),
++        data=dict(n=569, malignant=212, benign=357, n_features=30, features=FEATURE_NAMES,
++                  ordering="numeric ID ascending", raw_clean_agreement=True, exclusions=0),
++        input_sha256={p: sha(ROOT / p) for p in INPUTS},
++        training_source_sha256={p: sha(ROOT / p) for p in TRAINING_FILES},
++        outer_mapping_sha256=sha(out / "outer_fold_assignments.csv"),
++        inner_mapping_sha256=sha(out / "inner_fold_assignments.csv"),
++        other_model_audit=refs, inspected_branch_sources=sources,
++        rf_grid=MODEL_GRIDS[MODEL], existing_rf_results_used=False)
++    write_json(out / "input_audit.json", info)
++    return info
+diff --git a/src/yan/random_forest/report.py b/src/yan/random_forest/report.py
+new file mode 100644
+index 0000000..966fef8
+--- /dev/null
++++ b/src/yan/random_forest/report.py
+@@ -0,0 +1,587 @@
++"""Build RF-only review tables, figures and bilingual explanation after verification."""
++from pathlib import Path
++import json
++import time
++
++import matplotlib
++matplotlib.use("Agg")
++import matplotlib.pyplot as plt
++import numpy as np
++import pandas as pd
++from final_analysis import summarize_prediction_rows, MODEL_GRIDS
++from .audit import ROOT, MODEL, sha, write_json, align_reference, data_and_splits
++
++METRICS = ["auroc", "auprc", "brier_score", "log_loss", "sensitivity", "specificity",
++           "ppv", "npv", "FN", "FP", "TP", "TN", "mean_predicted", "observed_prevalence", "ece"]
++
++
++def save(fig, path):
++    fig.tight_layout()
++    fig.savefig(path, dpi=180, bbox_inches="tight")
++    plt.close(fig)
++
++
++def build_report(out):
++    tick = time.perf_counter()
++    verification = json.loads((out / "verification.json").read_text())
++    assert verification["complete"] and verification["all_required_checks_passed"]
++    manifest = json.loads((out / "run_manifest.json").read_text())
++    p = pd.read_csv(out / "oof_predictions.csv")
++    fold = pd.read_csv(out / "fold_results.csv")
++    search = pd.read_csv(out / "inner_cv_results.csv")
++    reps = pd.read_csv(out / "repeat_metrics.csv")
++    summary = pd.read_csv(out / "summary_metrics.csv").set_index("metric")
++    cal = pd.read_csv(out / "calibration_points.csv")
++    importance = pd.read_csv(out / "feature_importances.csv")
++    figures = out / "figures"
++    figures.mkdir(exist_ok=True)
++    plt.rcParams.update({"font.size": 10, "axes.spines.top": False,
++                         "axes.spines.right": False, "figure.facecolor": "white"})
++
++    # Only existing compatible ridge predictions are read; no regression fit occurs.
++    _, outer, _ = data_and_splits()
++    reference = ROOT / "results/final_nested/predictions/Ridge_Logistic.csv"
++    paired = pd.DataFrame()
++    reference_summary = None
++    if reference.exists():
++        ref = align_reference(pd.read_csv(reference), outer, "Ridge_Logistic")
++        align_reference(p, outer, MODEL)
++        ref_reps = pd.DataFrame([dict(repeat=int(r), model="Ridge_Logistic",
++            **summarize_prediction_rows(g)) for r, g in ref.groupby("repeat")])
++        ref_reps.to_csv(out / "comparator_repeat_metrics.csv", index=False)
++        merged = reps.merge(ref_reps, on="repeat", suffixes=("_rf", "_ridge"), validate="one_to_one")
++        paired = pd.DataFrame(dict(repeat=merged["repeat"], model=MODEL, comparator="Ridge_Logistic",
++            **{m + "_difference": merged[m + "_rf"] - merged[m + "_ridge"] for m in METRICS}))
++        paired.to_csv(out / "paired_repeat_differences.csv", index=False)
++        dcols = [c for c in paired if c.endswith("_difference")]
++        paired_summary = paired[dcols].agg(["mean", "std", "min", "max"]).T.reset_index(names="metric")
++        paired_summary.to_csv(out / "paired_difference_summary.csv", index=False)
++        reference_summary = ref_reps[METRICS].mean()
++
++    # Selection counts describe decisions made on inner data, never outer-score selection.
++    selected = fold.copy()
++    parsed = pd.json_normalize(selected.params_json.map(json.loads))
++    selected = pd.concat([selected, parsed], axis=1)
++    selected["depth_label"] = selected.max_depth.map(lambda v: "None" if pd.isna(v) else str(int(v)))
++    selected["features_label"] = selected.max_features.astype(str)
++    selected["leaf_label"] = selected.min_samples_leaf.astype(int).astype(str)
++    selection = pd.DataFrame(dict(candidate=k, params_json=json.dumps(v, sort_keys=True, separators=(",", ":")))
++                             for k, v in enumerate(MODEL_GRIDS[MODEL]))
++    counts = selected.params_json.value_counts()
++    selection["selected_folds"] = selection.params_json.map(counts).fillna(0).astype(int)
++    selection = selection.sort_values(["selected_folds", "params_json"], ascending=[False, True])
++    selection.to_csv(out / "parameter_selection.csv", index=False)
++    inner_summary = search.groupby(["candidate", "params_json"]).mean_inner_auroc.agg(
++        ["mean", "std", "min", "max"]).reset_index()
++    inner_summary.to_csv(out / "inner_parameter_summary.csv", index=False)
++    imp_summary = importance.groupby("feature").importance.agg(["mean", "std", "min", "max"]).reset_index()
++    imp_summary = imp_summary.sort_values("mean", ascending=False)
++    imp_summary.to_csv(out / "feature_importance_summary.csv", index=False)
++    importance["family"] = importance.feature.str.rsplit("_", n=1).str[0]
++    family = importance.groupby(["repeat", "fold", "family"]).importance.sum().reset_index()
++    family_summary = family.groupby("family").importance.agg(["mean", "std", "min", "max"]).reset_index()
++    family_summary.sort_values("mean", ascending=False).to_csv(out / "feature_family_summary.csv", index=False)
++    family.to_csv(out / "feature_family_importances.csv", index=False)
++
++    fig, axes = plt.subplots(2, 2, figsize=(10, 6))
++    for ax, metric, label in zip(axes.flat, ["auroc", "brier_score", "sensitivity", "specificity"],
++                                 ["AUROC", "Brier score (lower is better)", "Sensitivity", "Specificity"]):
++        ax.plot(reps["repeat"], reps[metric], marker="o", color="#2878B5")
++        if metric == "sensitivity":
++            ax.axhline(.95, color="gray", linestyle="--", label="Training target")
++            ax.legend(fontsize=8)
++        ax.set(xlabel="Repeat", ylabel=label, xticks=range(1, 11))
++        ax.grid(alpha=.2)
++    fig.suptitle("Random Forest: pooled outer predictions within each repeat", y=1.02)
++    save(fig, figures / "repeat_metrics.png")
++
++    fig, ax = plt.subplots(figsize=(7, 5))
++    for repeat, group in cal.groupby("repeat"):
++        ax.plot(group.mean_probability, group.observed_fraction, "o-", alpha=.65,
++                linewidth=1, markersize=3, label=f"Repeat {repeat}")
++    ax.plot([0, 1], [0, 1], "--", color="black", label="Ideal")
++    ax.set(xlabel="Mean predicted malignancy probability", ylabel="Observed malignant fraction",
++           title="Calibration: separate quantile bins for each repeat",
++           xlim=(-.02, 1.02), ylim=(-.02, 1.02))
++    ax.legend(ncol=2, fontsize=8)
++    ax.grid(alpha=.2)
++    save(fig, figures / "calibration.png")
++
++    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
++    index = np.arange(1, 51)
++    axes[0].plot(index, fold.train_resubstitution_auroc, ".", label="Training (optimistic)")
++    axes[0].plot(index, fold.validation_auroc, ".", label="Outer validation")
++    axes[0].set(xlabel="Outer fit (repeat, then fold)", ylabel="AUROC",
++                title="Training and validation scores")
++    axes[0].legend(fontsize=8)
++    axes[1].hist(fold.training_validation_gap, bins=12, color="#2878B5", edgecolor="white")
++    axes[1].set(xlabel="Training AUROC minus validation AUROC", ylabel="Outer fits",
++                title="Diagnostic only; no retuning")
++    save(fig, figures / "training_validation_gap.png")
++
++    fig, axes = plt.subplots(1, 3, figsize=(10, 3.5))
++    marginal_rows = []
++    for ax, column, title, levels in zip(axes, ["depth_label", "leaf_label", "features_label"],
++                                ["max_depth", "min_samples_leaf", "max_features"],
++                                [["3", "None"], ["1", "3", "5", "10"], ["sqrt", "0.5"]]):
++        counts = selected[column].value_counts().reindex(levels, fill_value=0)
++        marginal_rows.extend(dict(parameter=title, value=k, selected_folds=int(v))
++                             for k, v in counts.items())
++        ax.bar(counts.index, counts.values, color="#2878B5")
++        ax.set(xlabel=title, ylabel="Selected outer fits", ylim=(0, 50))
++        for j, n in enumerate(counts.values):
++            ax.text(j, n+.7, str(n), ha="center")
++    fig.suptitle("Parameter selection across 50 outer-training sets", y=1.02)
++    save(fig, figures / "parameter_selection.png")
++    pd.DataFrame(marginal_rows).to_csv(out / "parameter_selection_marginals.csv", index=False)
++
++    params = pd.json_normalize(search.params_json.map(json.loads))
++    inner_plot = pd.concat([search.reset_index(drop=True), params], axis=1)
++    inner_plot["depth_label"] = inner_plot.max_depth.map(lambda v: "None" if pd.isna(v) else str(int(v)))
++    fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
++    effects = []
++    for ax, feature_setting in zip(axes, ["sqrt", 0.5]):
++        sub = inner_plot.loc[inner_plot.max_features.eq(feature_setting)]
++        for depth, group in sub.groupby("depth_label"):
++            g = group.groupby("min_samples_leaf").mean_inner_auroc.agg(["mean", "std"])
++            ax.errorbar(g.index, g["mean"], yerr=g["std"], marker="o", capsize=3,
++                        label=f"depth={depth}")
++            effects.extend(dict(max_features=feature_setting, max_depth=depth,
++                min_samples_leaf=int(k), mean=float(v["mean"]), std=float(v["std"]))
++                for k, v in g.iterrows())
++        ax.set(xlabel="min_samples_leaf", ylabel="Mean inner-fold AUROC",
++               title=f"max_features={feature_setting}", xticks=[1, 3, 5, 10])
++        ax.legend(fontsize=8)
++    fig.suptitle("Inner-CV complexity patterns; bars show SD across outer-training sets", y=1.02)
++    save(fig, figures / "inner_parameter_results.png")
++    pd.DataFrame(effects).to_csv(out / "parameter_effects.csv", index=False)
++    contrasts = []
++    for feature_setting in ["sqrt", .5]:
++        sub = inner_plot.loc[inner_plot.max_features.eq(feature_setting)]
++        for depth in ["3", "None"]:
++            fixed = sub.loc[sub.depth_label.eq(depth)]
++            a = fixed.loc[fixed.min_samples_leaf.eq(1)].set_index(["repeat", "fold"]).mean_inner_auroc
++            b = fixed.loc[fixed.min_samples_leaf.eq(10)].set_index(["repeat", "fold"]).mean_inner_auroc
++            delta = a-b
++            contrasts.append(dict(max_features=feature_setting, contrast="leaf_1_minus_10",
++                fixed_depth=depth, fixed_leaf="not applicable", mean=float(delta.mean()),
++                std=float(delta.std()), min=float(delta.min()), max=float(delta.max())))
++        for leaf in [1, 3, 5, 10]:
++            fixed = sub.loc[sub.min_samples_leaf.eq(leaf)]
++            a = fixed.loc[fixed.depth_label.eq("None")].set_index(["repeat", "fold"]).mean_inner_auroc
++            b = fixed.loc[fixed.depth_label.eq("3")].set_index(["repeat", "fold"]).mean_inner_auroc
++            delta = a-b
++            contrasts.append(dict(max_features=feature_setting, contrast="depth_None_minus_3",
++                fixed_depth="not applicable", fixed_leaf=leaf, mean=float(delta.mean()),
++                std=float(delta.std()), min=float(delta.min()), max=float(delta.max())))
++    contrasts = pd.DataFrame(contrasts)
++    contrasts.to_csv(out / "parameter_contrasts.csv", index=False)
++
++    top = imp_summary.head(10).iloc[::-1]
++    fig, ax = plt.subplots(figsize=(9, 5))
++    ax.barh(top.feature, top["mean"], xerr=top["std"], color="#2878B5", capsize=3)
++    ax.set(xlabel="Mean impurity-based importance (bars: fold SD)",
++           title="Top training-model features across 50 outer fits")
++    save(fig, figures / "feature_importance.png")
++
++    mean = summary["mean"]
++    top_settings = selection.iloc[0]
++    top_features = ", ".join(imp_summary.head(5).feature)
++    leading_families = ", ".join(f"{r['family']} ({r['mean']:.3f})" for r in
++        family_summary.sort_values("mean", ascending=False).head(3).to_dict("records"))
++    leaf_effect = contrasts.loc[contrasts.max_features.eq("sqrt") &
++        contrasts.contrast.eq("leaf_1_minus_10") & contrasts.fixed_depth.eq("None"), "mean"].iloc[0]
++    depth_effect = contrasts.loc[contrasts.max_features.eq("sqrt") &
++        contrasts.contrast.eq("depth_None_minus_3") & contrasts.fixed_leaf.eq(1), "mean"].iloc[0]
++    metric_table = summary.loc[METRICS, ["mean", "std", "min", "max"]].to_markdown(floatfmt=".6f")
++    source = manifest["audit"]["base_commit"]
++    wall = sum(s["wall_seconds"] for s in manifest["sessions"] if s["stage"] in ["pilot", "run"])
++    task_seconds = float(fold.total_seconds.sum())
++    messages = sum(len(json.loads(v)) for v in fold.warnings_json)
++    paired_text = "No compatible ridge predictions were available; cross-model comparison is pending integration."
++    if not paired.empty:
++        d = paired.auroc_difference
++        comparative_conclusion = (
++            "In this run, RF did not improve discrimination or Brier score over the stable "
++            "logistic comparator. Any small difference in missed malignant records must be "
++            "considered together with false positives and probability quality."
++            if d.mean() < 0 and paired.brier_score_difference.mean() > 0 else
++            "These numerical differences describe this fixed analysis. They do not establish "
++            "clinical superiority, equivalence or noninferiority.")
++        paired_text = (
++            f"Archived ridge logistic predictions were matched on every ID, label, repeat and fold. "
++            f"Ridge was the team's documented stable comparator because the unpenalized fit showed "
++            f"separation-like numerical behavior. The shared code did not record solver convergence "
++            f"warnings for that fit; the fallback rationale should be described as numerical instability, "
++            f"rather than as a demonstrated convergence-warning failure. No regression model was retrained here.\n\n"
++            f"The paired RF-minus-ridge AUROC difference averaged {d.mean():+.6f} "
++            f"(repeat range {d.min():+.6f} to {d.max():+.6f}). The mean paired Brier difference was "
++            f"{paired.brier_score_difference.mean():+.6f}. RF averaged {mean['FN']:.1f} false negatives and "
++            f"{mean['FP']:.1f} false positives per repeat, compared with {reference_summary['FN']:.1f} "
++            f"and {reference_summary['FP']:.1f} for ridge. These are paired descriptive comparisons "
++            f"of repeated predictions from the same records, not independent studies or a test of equivalence. "
++            f"{comparative_conclusion} "
++            f"See paired_repeat_differences.csv, paired_difference_summary.csv and comparator_repeat_metrics.csv.")
++    report = f"""# Random Forest — model review and integration report
++
++Status: freshly run review artifacts; not a second formal model entry.
++Base repository commit: {source}. Model name: Random_Forest.
++All numbers below are from this run's CSV files. No archived RF predictions or metrics were used.
++
++## Methods
++
++We used all 569 WDBC records (212 malignant, 357 benign). Malignancy was coded as 1.
++The predictor matrix contained the 30 original numeric features, in the shared order.
++ID, diagnosis, target and fold identifiers were excluded. There was no imputation,
++scaling, feature selection, oversampling, class weighting or extra probability calibration.
++The raw and processed data agreed after sorting by ID. No record was removed.
++
++We reused the shared data loader, outer split function, RF constructor, threshold selector
++and pooled prediction evaluator. The primary analysis used 10 repeats of stratified
++five-fold outer CV. Each outer-training set used stratified five-fold inner CV.
++Every candidate forest contained 500 trees. The fixed grid had 16 settings:
++max_depth in {{3, None}}, min_samples_leaf in {{1, 3, 5, 10}} and max_features in {{sqrt, 0.5}}.
++The selected setting had the largest mean inner-fold AUROC; the first grid entry won exact ties.
++Selection did not use pooled inner AUROC or any outer-validation result.
++
++For each selected setting, we used its saved inner OOF probabilities to select the highest
++observed probability threshold with sensitivity at least 95%, using probability >= threshold.
++Each OOF prediction came from a model that had not fitted that record. These same inner
++folds had also been used to select the setting, so their score is not an independent
++generalization estimate. We did not add a third validation layer. The setting was refitted
++on the full outer-training set and its threshold was applied unchanged to outer validation.
++We explicitly located class 1 in classes_ before extracting predict_proba.
++
++Each repeat pooled five validation folds, giving one prediction per ID. We reused the
++shared metrics, including average precision for AUPRC. Log loss evaluated a temporary
++copy clipped to [1e-15, 1-1e-15]; exported probabilities were unchanged.
++Undefined predictive values are blank/NaN, not zero. Calibration used up to five
++quantile bins separately within each repeat, merging repeated boundaries.
++Impurity-based importances and resubstitution AUROC came from the 50 outer-training
++models. They were diagnostic summaries and were not used to select features or retune.
++
++Seeds were 707+r for outer splits, 1707+100r+f for inner splits,
++inner_seed+100*c+k for candidate fits and 707+10000r+100f for final fits
++(r is zero-based repeat; f, c and k are zero-based fold/candidate indices).
++Stored repeat values are 1–10; stored folds are 0–4.
++Two outer tasks ran in parallel, with n_jobs=1 per forest and native thread limits of 1.
++The complete grid required 4,000 inner fits plus 50 final fits. The pilot was one of
++these 50 final fits and was reused only after its run fingerprint and full contents passed checks.
++
++## Results
++
++All 50 outer fits completed, producing 800 candidate summaries, 5,690 outer predictions,
++10 repeat metrics and 1,500 feature-importance rows. The table summarizes the 10 repeats.
++SD and range describe variation with fold assignments; the repeats share the same records.
++
++{metric_table}
++
++The mean predicted malignant probability was {mean['mean_predicted']:.6f}, compared with
++an observed fraction of {mean['observed_prevalence']:.6f}.
++Validation sensitivity ranged from {summary.loc['sensitivity','min']:.6f}
++to {summary.loc['sensitivity','max']:.6f}; the training target was not a guarantee.
++The selected thresholds ranged from {fold.threshold.min():.6f} to {fold.threshold.max():.6f}.
++Source: repeat_metrics.csv, summary_metrics.csv and fold_results.csv.
++
++The most frequent selected configuration was {top_settings['params_json']}, selected in
++{int(top_settings['selected_folds'])} of 50 outer fits. The mean resubstitution AUROC was
++{fold.train_resubstitution_auroc.mean():.6f}; the mean outer-fold AUROC was
++{fold.validation_auroc.mean():.6f}, giving a mean diagnostic gap of
++{fold.training_validation_gap.mean():.6f}. This fold-average diagnostic is distinct from
++the primary pooled-record repeat AUROC. Sources: parameter_selection.csv and fold_results.csv.
++
++Holding max_features=sqrt and max_depth=None, the mean paired inner-AUROC
++difference for leaf size 1 minus 10 was {leaf_effect:+.6f}.
++Holding max_features=sqrt and min_samples_leaf=1, the difference for unrestricted
++depth minus depth 3 was {depth_effect:+.6f}. These are conditional patterns in the
++prespecified grid, not effects isolated from the shared candidate-specific random seeds.
++The other fixed-setting contrasts are in parameter_contrasts.csv.
++
++The leading features by mean training-model importance were {top_features}.
++Full fold values and variability are in feature_importances.csv and
++feature_importance_summary.csv. The 10 family-level summaries are in feature_family_summary.csv.
++The largest mean family totals were {leading_families}.
++These sums describe importance allocation, not independent effects or effect direction.
++
++Accumulated per-fold task time was {task_seconds:.3f} seconds. Combined pilot/run session
++wall time was {wall:.3f} seconds (parallel task times are not wall time).
++The median outer-task time was {fold.total_seconds.median():.3f} seconds.
++There were {messages} recorded warning messages and no completed-fold exceptions.
++No extra OOF model-fitting time was claimed: the threshold reused probabilities saved during tuning.
++Sources: fold_results.csv and run_manifest.json.
++
++### Paired comparison with the stable logistic model
++
++{paired_text}
++
++## Interpretation
++
++AUROC describes ranking of malignant versus benign records. Brier score, log loss and
++calibration plots describe probability quality; high AUROC does not establish reliable
++probabilities. At the training-selected operating points, FN means a malignant record
++classified negative, and FP means a benign record that might be sent for unnecessary
++escalated review. These are errors in this historical dataset, not observed clinical benefits.
++
++Compare leaf size and depth within each max_features setting using parameter_effects.csv
++and figures/inner_parameter_results.png. These fixed-grid patterns reflect joint model
++settings and overlapping training data. They do not isolate causal parameter effects.
++Training AUROC is optimistic because it evaluates the same observations used for fitting.
++The training–validation gap is a diagnostic, not a reason for post-hoc model changes.
++
++The feature plot summarizes splits selected in training models. Impurity importance has
++no effect direction, can favor variables with more available split points and can shift
++among correlated predictors. Radius, perimeter and area and their mean/worst summaries
++are related. Family-level totals describe where importance is allocated, but do not fix
++these biases. This analysis neither identifies causal effects nor demonstrates a
++particular interaction. No features were selected from these plots.
++
++## Limitations
++
++This is a small, historical, heavily studied dataset with correlated predictors.
++Unique record IDs do not prove unique patients. There is no independent temporal,
++hospital-level or external validation. Repeating CV does not create new people:
++5,690 predictions represent 569 records assessed 10 times.
++Inner OOF results are conditional on tuning on those same folds and are not a second
++independent performance estimate. Five-bin calibration is coarse and split-dependent.
++Impurity importance is limited by correlation and split-selection bias.
++The exploratory 95% sensitivity target is not clinically validated.
++No demographic fairness audit, clinical benefit, deployment readiness or future
++cancer-onset prediction is established. Small differences do not prove equivalence.
++
++## Shared-interface audit and integration
++
++The exact outer ID/label/repeat/fold mapping matched all five available regression/SVM
++prediction files. Haiyi's branch reused the same shared model/data/metric core.
++Asher's nested script used inner seeds 1707+5r+f instead of 1707+100r+f
++(scripts/run_svm_nested.py, line 32 on the inspected Asher branch).
++Its legacy repeat table averaged fold metrics (lines 73–78), whereas final main
++summarize_primary pools record predictions. These differences are disclosed, not silently repaired.
++The generic metrics.compute_classification_at_threshold fills undefined ratios with 0
++(src/metrics.py, lines 65–68); this run used the correct final pooled summary instead.
++The generic evaluate_predictions can tune a threshold when none is provided; it was never
++used for outer evaluation here. Shared source files were not changed.
++
++TEAM_WORKFLOW discourages separate formal model-result folders. The user explicitly
++requested this personal review directory. After team approval, integrate this run as
++the single Random_Forest entry, replacing that model's old entries once.
++Do not append it as another model, mix old/new folds, or overwrite other members' outputs.
++See handoff_zh.md and consistency_checks.csv.
++
++## 中文解释
++
++### 我们这次实际做了什么
++
++这次重新训练了随机森林，没有读取旧随机森林预测、指标或模型作为结果。
++先核对原始数据、清洗数据与其他模型的逐条折归属，再完成 50 个外层训练。
++每个外层训练都比较全部 16 组参数，每个模型保留 500 棵树。
++模型说明由 AI 辅助编写；这不等于你本人已独立写过、运行过或审核过所有代码。
++
++### 参数和阈值如何选
++
++随机森林把多棵决策树的概率预测取平均。本次固定500棵树。
++max_depth控制每棵树可以分裂的深度，3表示限制深度，None表示不额外设置深度上限。
++min_samples_leaf控制叶节点至少保留多少训练记录。
++max_features控制每次分裂时考虑多少候选特征：sqrt对30个特征约为5个，
++0.5为15个。这不等于事先只保留这些特征；全部30个特征始终都有资格被使用。
++
++外层验证数据先留在一边。只在外层训练集内部做 5 折，
++按 16 组配置各自的平均内层 AUROC 选配置。
++然后使用选中配置的内层 OOF 概率，找到敏感度至少 95% 的最高阈值。
++OOF 表示该条记录的预测来自没有拿它参与拟合的模型。
++参数和阈值选好后，才预测外层验证记录，且不再调阈值。
++内层 OOF 参与过选参数，因此它本身不能当作独立验证成绩。
++
++### 怎样理解结果
++
++每轮把 5 个验证折合成 569 条预测再算指标，最后总结 10 轮的均值、SD 和范围。
++AUROC 越高表示排序越好；Brier 与 log loss 越低表示概率误差越小。
++敏感度和特异度描述固定阈值下的漏判与误报。
++95% 是训练时的目标，验证结果低于它也照实报告。
++10 轮使用相同的记录，不能说有 5,690 个独立病例。
++
++### 老师可能追问
++
++- 为什么用 nested CV？内层选参数，外层评价完整的选择流程。
++- 为什么随机森林不标准化？按方案，树模型使用原始数值尺度。
++- 训练分数为什么更高？模型已经拟合过训练记录，因此训练分数偏乐观。
++- 特征重要性有没有方向？没有；它不等于回归系数，也不证明因果或具体交互。
++- 为什么和 ridge 比？共同文档把它指定为数值较稳定的回归参照；本次没有重训回归。
++- 能用于普通人未来患癌预测吗？不能；数据是已有乳腺肿块的诊断特征。
++- 你本人贡献是什么？请根据你实际理解、检查、修改和整合的内容回答，勿把 AI 操作说成独立手写。
++
++## Figures
++
++![Repeat-level metrics](figures/repeat_metrics.png)
++
++![Separate calibration curves for all ten repeats](figures/calibration.png)
++
++![Training and validation diagnostic](figures/training_validation_gap.png)
++
++![Parameter selection](figures/parameter_selection.png)
++
++![Inner-CV complexity patterns](figures/inner_parameter_results.png)
++
++![Training-model feature importance](figures/feature_importance.png)
++
++## Data attribution
++
++Wolberg, W., Mangasarian, O., Street, N., & Street, W. (1993).
++Breast Cancer Wisconsin (Diagnostic), UCI Machine Learning Repository.
++https://doi.org/10.24432/C5DW2B . Source data licensed under
++CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ .
++Modifications: diagnosis encoded as a binary target; records sorted by ID;
++fresh cross-validated probabilities, diagnostics and figures derived for this educational analysis.
++"""
++    (out / "model_report.md").write_text(report, encoding="utf-8")
++    guide = f"""# 从这里开始：随机森林交接与复现
++
++## 先确认完成状态
++
++本包基于仓库 commit {source}，只新增 src/yan/random_forest/、
++scripts/yan/ 和 results/yan/random_forest/。没有修改共同源代码、正式结果或其他成员文件。
++当前是云端工作区生成状态，未 commit、未 push、未创建 PR，未修改 GitHub 权限。
++个人目录是待整合审核产物，不是第二个正式随机森林模型。
++
++## 1. 下载后先看什么
++
++1. 解压交付 ZIP，看到 src、scripts、results 三个文件夹是正常的。
++2. 打开 results/yan/random_forest/model_report.md：先看中文解释，再看英文 Methods/Results。
++   Markdown 是普通文本，PyCharm、记事本或 GitHub 网页都能打开；PDF 是方便阅读的副本。
++3. 打开 summary_metrics.csv：mean=10轮均值，std=标准差，min/max=范围。
++4. 打开 figures/ 的6张图：分别是每轮表现、校准、训练验证差距、选参次数、
++   内层复杂度表现、特征重要性。不要把训练 AUROC 当作最终成绩。
++5. 打开 verification.json：complete 与 all_required_checks_passed 应为 true。
++6. 原始预测是 oof_predictions.csv；不要手动改概率、标签、fold或阈值。
++
++## 2. 应交给组员的内容
++
++把整个交付 ZIP 与本说明交给组员，不只发一张图。
++
++- src/yan/random_forest/train.py：随机森林训练及严格检查点。
++- src/yan/random_forest/audit.py：共同数据、实际折映射和版本核对。
++- src/yan/random_forest/report.py、verify.py、test_checks.py：图文、额外核查和测试。
++- scripts/yan/run.py：唯一入口，只执行此随机森林流程。
++- oof_predictions.csv：5690行，可用于共同模型比较。
++- fold_results.csv：50条外层记录，含参数、阈值、训练验证差距和时间。
++- inner_cv_results.csv：800条候选记录，含各内层折AUROC。
++- selected_inner_oof.csv：审核阈值所用的训练内部OOF。
++- outer_fold_assignments.csv、inner_fold_assignments.csv：审核划分，不是另造数据划分。
++- feature_importances.csv、calibration_points.csv、repeat_metrics.csv及汇总表。
++- run_manifest.json、input_audit.json、verification.json、extended_verification.json、
++  checksums.json、source_changes.patch、environment.txt和运行日志：版本与检查证据。
++- model_report.md：可整合的英文模型说明及中文学习说明。
++- checkpoints/：仅本次运行的50个完整检查点，支持继续和复核。
++
++## 3. 如何在 GitHub 网页上传，不需要先装 Python
++
++1. 登录你自己的 GitHub 账号，打开项目仓库。
++2. 点击左上角当前分支 main 的下拉框，输入 yan/random-forest-review；
++   选择从 main 创建新分支。若看不到创建选项，说明你的网页账号可能没有写权限；
++   可把完整包交给有权限的组员，或用 GitHub 的 fork 流程提交。
++3. 确认页面分支已经是 yan/random-forest-review。
++4. 点击 Add file → Upload files，把解压后的 src 文件夹拖入网页。
++   最终路径应是 src/yan/random_forest/...，而不是 ZIP文件本身或多套一层文件夹。
++5. 填写清楚的提交说明后提交到这个新分支。按同样方式上传 scripts、results，
++   文件多时分批上传；网页上传单个文件需低于25MB。每次都检查分支与目录。
++6. 核对页面中没有修改 src/final_analysis.py、src/metrics.py、
++   results/final_nested 或其他成员文件。
++7. 点击 Compare & pull request，base 选 main，compare 选你的新分支。
++   描述本次是新运行的RF审核产物，列出完整核查结果与共同接口差异。
++8. 创建 PR 后，把链接交给组员审阅。是否采用这套RF、如何更新共同报告由组内确认。
++   本说明中的“未push/未PR”描述的是交付时状态，上传后由你如实更新。
++
++网页按钮名称可能随 GitHub 版本变化。关键是路径正确、在自己的分支、
++审阅后再由小组整合；本包没有替你上传。
++
++## 4. 组员怎样整合，避免重复比较
++
++先核对基础commit与input_audit中的共同代码及数据hash；若main已更新，重新审阅差异。
++逐条对齐 id、y_true、repeat、fold。列名采用共同规范，模型名仍是 Random_Forest。
++确认采用后，在共同预测集合中先移除旧 Random_Forest 行，再加入这次 oof_predictions.csv，
++保留其他模型原行。若更新逐模型文件，也仅替换 Random_Forest 那一份。
++将每轮5折合成569条再计算指标；不要追加两个版本、混合新旧折或保留两套RF参加排名。
++本次没有执行这些正式结果替换，也没有运行 build_final_outputs.py。
++该全组生成脚本会重写报告和AI反思模板，整合前应先保护成员已写内容。
++
++## 5. PyCharm 中复现（只有想亲自运行时才需要）
++
++1. PyCharm 选择 Get from Version Control，仓库URL：
++   https://github.com/txu-01/Biostat707-final-project.git
++   如果已下载项目，用 Open 打开含 README.md 的项目根文件夹。
++2. 在项目根目录打开Terminal，用 git checkout {source} 固定本次基础版本；
++   已有未提交修改时先保留自己的修改，不直接覆盖。
++3. 把 ZIP 中的 src、scripts、results 合并到相同目录。
++   ZIP只包含个人新增路径；保留原来的共同文件。
++4. 配置 Python 3.12 的项目虚拟环境，然后在项目根目录Terminal执行：
++
++    python -m pip install -r requirements.txt
++    python -m pip install -r src/yan/random_forest/requirements.txt
++    python scripts/yan/run.py audit
++    python scripts/yan/run.py pilot --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py run --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py verify --output results/yan/random_forest/reproduction
++    python scripts/yan/run.py report --output results/yan/random_forest/reproduction
++
++第二个requirements固定本次用到的传递依赖。新的reproduction子目录确保不覆盖交付结果。
++首次pilot会实际训练一整折（16组×5内折+最终拟合），不是降低参数的演示。
++run完成剩余49折。进度显示repeat 1–10和fold 0–4。运行时间取决于电脑。
++如果中断，使用相同Python环境、代码、数据和命令再次run即可；
++fingerprint不同会拒绝旧检查点，此时改用新的个人子目录。
++Windows并行入口必须用 scripts/yan/run.py，它包含标准main保护。
++
++如使用PyCharm的Run按钮：右键 scripts/yan/run.py → Modify Run Configuration，
++在Parameters填 pilot --output results/yan/random_forest/reproduction，
++Working directory选择项目根目录，Python interpreter选择刚配置的虚拟环境。
++随后分别把pilot改成run、verify、report运行。
++正常完成后 verification.json 应显示50折、5690预测、800候选及complete=true。
++若出错，保留完整错误文字；不要手动改CSV或删掉部分记录来“通过”检查。
++
++检查交付结果（不重训）：
++
++    python src/yan/random_forest/verify.py
++    python src/yan/random_forest/test_checks.py
++
++scripts/yan/run.py verify会严格检查运行环境指纹，适合同一环境下的继续核查；
++在另一台电脑阅读交付结果时，优先使用上面的独立CSV核查脚本。
++跨平台复现的概率可能存在微小浮点差别；本次锁定的完整版本与源代码hash在manifest中。
++在其他操作系统上先用新输出目录运行，不把新环境与云端检查点混用。
++
++## 6. 你需要亲自完成的内容
++
++阅读报告并用自己的话解释：内层/外层CV、训练内部OOF、95%目标不是验证保证、
++AUROC与校准的区别、特征重要性的局限。
++个人贡献与AI反思请依据自己真实做过的学习、核查、修改、沟通及整合填写。
++ai_assistance.md记录的是本次AI实际执行内容，不替你编造个人经历。
++
++## 7. 待全组统一说明的事项
++
++- SVM旧分支的内层seed规则与当前共同代码不同；外层逐ID映射一致。
++- SVM旧分支repeat表曾按折平均；正式比较应沿用main中合并预测后的指标。
++- Ridge被用作稳定参照的理由是分离样数值行为；共同记录并非单纯solver警告失败。
++- yan目录中的这套结果是否替换旧RF，需要审阅决定；不能重复加入。
++- 当前交付未修改、提交或发布GitHub内容。
++"""
++    (out / "handoff_zh.md").write_text(guide, encoding="utf-8")
++    (out / "ai_assistance.md").write_text("""# Actual AI-assisted work and personal completion prompts
++
++The user requested an RF-only fresh run, prompt review, validation, deliverables and beginner guidance.
++The assistant inspected repository source and available branches, installed the pinned environment,
++wrote the personal RF runner and audits, ran a complete pilot and repeated nested CV, checked exports,
++and prepared figures and bilingual draft explanations. No other model was fitted during this task.
++The shared official outputs and GitHub repository were not modified or published by the assistant.
++This is an operations record, not a claim that Yan independently authored or personally ran all steps.
++
++Yan should complete the following in her own words after review:
++- Parts I personally understood and checked: [fill in]
++- Changes or corrections I personally made: [fill in]
++- Code review or discussion I completed with a teammate: [fill in]
++- What AI helped me do: [fill in based on actual experience]
++- An AI limitation/error I noticed and how I checked it: [fill in]
++- Effect on my workload and understanding: [fill in]
++- One methodological point I can explain without assistance: [fill in]
++""", encoding="utf-8")
++    manifest["report_source_sha256"] = sha(Path(__file__))
++    manifest["report_generation_seconds"] = time.perf_counter() - tick
++    manifest["reporting_reference_sha256"] = sha(reference) if reference.exists() else None
++    write_json(out / "run_manifest.json", manifest)
++    print("RF-only tables, six figures and bilingual reports generated.")
+diff --git a/src/yan/random_forest/requirements.txt b/src/yan/random_forest/requirements.txt
+new file mode 100644
+index 0000000..6062c8b
+--- /dev/null
++++ b/src/yan/random_forest/requirements.txt
+@@ -0,0 +1,3 @@
++# Additional transitive versions used by this run; install root requirements.txt first.
++joblib==1.6.0
++threadpoolctl==3.8.0
+diff --git a/src/yan/random_forest/test_checks.py b/src/yan/random_forest/test_checks.py
+new file mode 100644
+index 0000000..75a6feb
+--- /dev/null
++++ b/src/yan/random_forest/test_checks.py
+@@ -0,0 +1,104 @@
++"""Focused adversarial checks, using the pilot artifacts without retraining."""
++from pathlib import Path
++import copy
++import json
++import sys
++import tempfile
++import unittest
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
++
++import numpy as np
++import pandas as pd
++from final_analysis import summarize_prediction_rows
++from metrics import select_threshold_target_sensitivity, compute_calibration_curve
++from yan.random_forest.audit import ROOT, OUT, data_and_splits, align_reference
++from yan.random_forest.train import positive_probability, validate_fold, load_checkpoint
++
++
++class AuditTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.data, cls.outer, cls.inner = data_and_splits()
++        cls.wrapper = json.loads((OUT / "checkpoints/repeat_01_fold_0.json").read_text())
++        cls.ref = pd.read_csv(ROOT / "results/final_nested/predictions/Ridge_Logistic.csv")
++
++    def test_ties_and_boundaries_select_highest_qualifying_threshold(self):
++        y = np.array([1]*20 + [0, 0, 0])
++        p = np.array([.1]+[.8]*19+[0, .8, 1.0])
++        t, sensitivity = select_threshold_target_sensitivity(y, p, .95)
++        self.assertEqual(t, .8)
++        self.assertEqual(sensitivity, .95)
++        self.assertEqual(select_threshold_target_sensitivity([0, 1], [1., 1.], .95), (1., 1.))
++        self.assertEqual(select_threshold_target_sensitivity([0, 1], [0., 0.], .95), (0., 1.))
++
++    def test_quantile_boundary_ties_preserve_all_records(self):
++        y = np.array([0]*12+[1]*8)
++        p = np.array([0.]*12+[.5]*4+[1.]*4)
++        result = compute_calibration_curve(y, p)
++        self.assertEqual(sum(result["bin_counts"]), len(y))
++        constant = compute_calibration_curve(y, np.ones(len(y))*.2)
++        self.assertEqual(constant["bin_counts"], [20])
++        self.assertAlmostEqual(constant["bin_true_prop"][0], .4)
++
++    def test_probability_column_is_looked_up_not_assumed(self):
++        class Reverse:
++            classes_ = np.array([1, 0])
++            def predict_proba(self, x):
++                return np.array([[.7, .3], [.2, .8]])
++        np.testing.assert_array_equal(positive_probability(Reverse(), None), [.7, .2])
++
++    def test_same_row_count_can_hide_duplicate_reference_ids(self):
++        bad = self.ref.copy()
++        bad.iloc[1] = bad.iloc[0]
++        with self.assertRaises(ValueError):
++            align_reference(bad, self.outer, "Ridge_Logistic")
++
++    def test_same_fold_counts_do_not_prove_identical_record_assignment(self):
++        bad = self.ref.copy()
++        indices = bad.index[(bad["repeat"] == 1) & bad.fold.isin([0, 1])]
++        a = bad.index[(bad["repeat"] == 1) & (bad.fold == 0)][0]
++        b = bad.index[(bad["repeat"] == 1) & (bad.fold == 1)][0]
++        bad.loc[a, "fold"], bad.loc[b, "fold"] = 1, 0
++        with self.assertRaises(AssertionError):
++            align_reference(bad, self.outer, "Ridge_Logistic")
++
++    def test_wrong_label_is_rejected(self):
++        bad = self.ref.copy()
++        bad.loc[0, "y_true"] = 1-int(bad.loc[0, "y_true"])
++        with self.assertRaises(AssertionError):
++            align_reference(bad, self.outer, "Ridge_Logistic")
++
++    def test_complete_pilot_passes_then_duplicate_predictions_fail(self):
++        good = copy.deepcopy(self.wrapper["payload"])
++        validate_fold(good, 1, 0, self.data, self.outer, self.inner)
++        good["predictions"][1] = copy.deepcopy(good["predictions"][0])
++        with self.assertRaises(AssertionError):
++            validate_fold(good, 1, 0, self.data, self.outer, self.inner)
++
++    def test_inner_oof_cannot_include_outer_validation_id(self):
++        bad = copy.deepcopy(self.wrapper["payload"])
++        bad["selected_inner_oof"][0]["id"] = bad["predictions"][0]["id"]
++        with self.assertRaises(AssertionError):
++            validate_fold(bad, 1, 0, self.data, self.outer, self.inner)
++
++    def test_checkpoint_from_another_run_is_rejected(self):
++        manifest = json.loads((OUT / "run_manifest.json").read_text())
++        bad = copy.deepcopy(self.wrapper)
++        bad["run_id"] = "a-different-run"
++        with tempfile.TemporaryDirectory() as directory:
++            path = Path(directory) / "checkpoint.json"
++            path.write_text(json.dumps(bad))
++            with self.assertRaises(AssertionError):
++                load_checkpoint(path, manifest, 1, 0, self.data, self.outer, self.inner)
++
++    def test_row_thresholds_and_undefined_predictive_values(self):
++        rows = pd.DataFrame(dict(y_true=[0, 0, 1, 1], y_prob=[.1, .4, .6, .9],
++                                 threshold=[.5, .5, .7, .7]))
++        result = summarize_prediction_rows(rows)
++        self.assertEqual((result["TN"], result["FP"], result["FN"], result["TP"]), (2, 0, 1, 1))
++        rows["threshold"] = 1.
++        self.assertTrue(np.isnan(summarize_prediction_rows(rows)["ppv"]))
++
++
++if __name__ == "__main__":
++    unittest.main(verbosity=2)
+diff --git a/src/yan/random_forest/train.py b/src/yan/random_forest/train.py
+new file mode 100644
+index 0000000..904a550
+--- /dev/null
++++ b/src/yan/random_forest/train.py
+@@ -0,0 +1,368 @@
++"""Fresh, audited 10x5 RF nested CV using the unchanged shared design.
++
++No existing Random Forest result is read. No other model is trained.
++"""
++from pathlib import Path
++from concurrent.futures import ProcessPoolExecutor, as_completed
++from datetime import datetime, timezone
++import argparse
++import json
++import sys
++import time
++import uuid
++import warnings
++
++import numpy as np
++import pandas as pd
++from sklearn.metrics import roc_auc_score
++from sklearn.model_selection import StratifiedKFold
++from threadpoolctl import threadpool_limits
++from final_analysis import (FEATURE_NAMES, MODEL_GRIDS, _outer_split, load_data,
++                            make_model, params_json, summarize_prediction_rows)
++from metrics import select_threshold_target_sensitivity, compute_calibration_curve
++from .audit import (ROOT, OUT, MODEL, audit, data_and_splits, canonical, digest, sha,
++                    write_json, align_reference)
++
++
++def utc():
++    return datetime.now(timezone.utc).isoformat()
++
++
++def positive_probability(model, x):
++    columns = np.flatnonzero(np.asarray(model.classes_) == 1)
++    if len(columns) != 1 or set(model.classes_) != {0, 1}:
++        raise ValueError("Cannot identify malignant class probability")
++    p = model.predict_proba(x)[:, int(columns[0])]
++    if not np.isfinite(p).all() or not ((0 <= p) & (p <= 1)).all():
++        raise ValueError("Invalid probabilities")
++    return p
++
++
++def fit_model(params, seed, x, y):
++    model = make_model(MODEL, params, seed).set_params(n_jobs=1)
++    with warnings.catch_warnings(record=True) as caught:
++        warnings.simplefilter("always")
++        model.fit(x, y)
++    if len(model.estimators_) != 500 or model.n_features_in_ != 30:
++        raise AssertionError("Forest size or feature count changed")
++    assert list(model.feature_names_in_) == FEATURE_NAMES
++    return model, [f"{w.category.__name__}: {w.message}" for w in caught]
++
++
++def run_fold(repeat, fold):
++    """Training receives only outer-training data until final validation scoring."""
++    with threadpool_limits(limits=1):
++        data = load_data()
++        tr, va = list(_outer_split(data, repeat - 1, 5))[fold]
++        assert not np.intersect1d(tr, va).size
++        x = data.iloc[tr][FEATURE_NAMES]
++        y = data.target.to_numpy()[tr]
++        inner_seed = 1707 + 100 * (repeat - 1) + fold
++        outer_seed = 707 + 10000 * (repeat - 1) + 100 * fold
++        cv = list(StratifiedKFold(5, shuffle=True, random_state=inner_seed).split(x, y))
++        start = time.perf_counter()
++        search, candidates_oof, notes = [], [], []
++        inner_assignment = np.full(len(tr), -1, dtype=int)
++        for k, (a, b) in enumerate(cv):
++            assert not np.intersect1d(tr[a], tr[b]).size
++            assert not np.intersect1d(tr[b], va).size
++            inner_assignment[b] = k
++        for candidate, params in enumerate(MODEL_GRIDS[MODEL]):
++            tick = time.perf_counter()
++            oof = np.full(len(tr), np.nan)
++            scores, seeds, fit_times = [], [], []
++            candidate_warnings = []
++            for k, (a, b) in enumerate(cv):
++                seed = inner_seed + 100 * candidate + k
++                tick_fit = time.perf_counter()
++                model, messages = fit_model(params, seed, x.iloc[a], y[a])
++                fit_times.append(time.perf_counter() - tick_fit)
++                oof[b] = positive_probability(model, x.iloc[b])
++                scores.append(float(roc_auc_score(y[b], oof[b])))
++                seeds.append(seed)
++                candidate_warnings.extend(messages)
++            assert np.isfinite(oof).all()
++            search.append(dict(repeat=repeat, fold=fold, model=MODEL, candidate=candidate,
++                params_json=params_json(params), mean_inner_auroc=float(np.mean(scores)),
++                inner_auroc_sd=float(np.std(scores, ddof=1)),
++                pooled_inner_auroc=float(roc_auc_score(y, oof)),
++                inner_model_seeds_json=canonical(seeds), inner_fit_seconds_json=canonical(fit_times),
++                seconds=time.perf_counter() - tick, warnings_json=canonical(candidate_warnings),
++                n_estimators=500, **{f"inner_fold_{k}_auroc": s for k, s in enumerate(scores)}))
++            candidates_oof.append(oof)
++            notes.extend(candidate_warnings)
++        # Same shared tie rule: highest mean; first ParameterGrid candidate on exact ties.
++        selected = max(range(16), key=lambda i: (search[i]["mean_inner_auroc"], -i))
++        order = sorted(range(16), key=lambda i: (-search[i]["mean_inner_auroc"], i))
++        for rank, i in enumerate(order, 1):
++            search[i]["rank"] = rank
++        tuning_seconds = time.perf_counter() - start
++        selected_oof = candidates_oof[selected]
++        tick = time.perf_counter()
++        threshold, inner_sensitivity = select_threshold_target_sensitivity(y, selected_oof, .95)
++        threshold_seconds = time.perf_counter() - tick
++        assert inner_sensitivity >= .95
++        params = MODEL_GRIDS[MODEL][selected]
++        tick = time.perf_counter()
++        fitted, messages = fit_model(params, outer_seed, x, y)
++        final_fit_seconds = time.perf_counter() - tick
++        tick = time.perf_counter()
++        train_probability = positive_probability(fitted, x)
++        # Validation features are used only after parameters and threshold are locked.
++        probability = positive_probability(fitted, data.iloc[va][FEATURE_NAMES])
++        prediction_seconds = time.perf_counter() - tick
++        predictions = [dict(id=int(data.id.iloc[i]), y_true=int(data.target.iloc[i]),
++            model=MODEL, repeat=repeat, fold=fold, y_prob=float(p), threshold=float(threshold),
++            predicted_class=int(p >= threshold)) for i, p in zip(va, probability)]
++        validation = summarize_prediction_rows(pd.DataFrame(predictions))
++        inner_predictions = [dict(repeat=repeat, fold=fold, inner_fold=int(k),
++            id=int(data.id.iloc[i]), y_true=int(v), y_prob=float(p), threshold=float(threshold),
++            predicted_class=int(p >= threshold))
++            for i, v, p, k in zip(tr, y, selected_oof, inner_assignment)]
++        importance = [dict(repeat=repeat, fold=fold, feature=f, importance=float(v))
++                      for f, v in zip(FEATURE_NAMES, fitted.feature_importances_)]
++        total_seconds = time.perf_counter() - start
++        record = dict(repeat=repeat, fold=fold, model=MODEL, n_train=len(tr), n_validation=len(va),
++            n_train_malignant=int(y.sum()), n_train_benign=int((y == 0).sum()),
++            n_validation_malignant=int(data.target.iloc[va].sum()),
++            n_validation_benign=int((data.target.iloc[va] == 0).sum()),
++            params_json=params_json(params), selected_candidate=selected,
++            best_mean_inner_auroc=search[selected]["mean_inner_auroc"],
++            threshold=float(threshold), inner_sensitivity=float(inner_sensitivity),
++            train_resubstitution_auroc=float(roc_auc_score(y, train_probability)),
++            validation_auroc=float(validation["auroc"]),
++            training_validation_gap=float(roc_auc_score(y, train_probability) - validation["auroc"]),
++            tuning_seconds=tuning_seconds, threshold_selection_seconds=threshold_seconds,
++            threshold_additional_model_fit_seconds=0.0, final_fit_seconds=final_fit_seconds,
++            prediction_seconds=prediction_seconds, total_seconds=total_seconds,
++            inner_seed=inner_seed, outer_seed=outer_seed, n_jobs=1, n_estimators=500,
++            inner_forest_fits=80, final_forest_fits=1,
++            warnings_json=canonical(notes + messages), exception_json="[]", **validation)
++        return dict(predictions=predictions, fold_results=[record], inner_cv_results=search,
++                    selected_inner_oof=inner_predictions, feature_importances=importance)
++
++
++def validate_fold(payload, repeat, fold, data, outer, inner):
++    """Reject incomplete/misaligned checkpoints before resuming or exporting."""
++    p = pd.DataFrame(payload["predictions"])
++    expect = outer.query("repeat == @repeat and fold == @fold").sort_values("id")
++    assert len(p) == len(expect) and not p.id.duplicated().any()
++    pd.testing.assert_frame_equal(p.sort_values("id")[["id", "y_true", "repeat", "fold"]].reset_index(drop=True),
++        expect[["id", "y_true", "repeat", "fold"]].reset_index(drop=True), check_dtype=False)
++    assert set(p.model) == {MODEL}
++    assert np.isfinite(p[["y_prob", "threshold"]]).all().all()
++    assert p.y_prob.between(0, 1).all() and p.threshold.between(0, 1).all()
++    assert p.threshold.nunique() == 1
++    assert np.array_equal(p.predicted_class, p.y_prob.ge(p.threshold).astype(int))
++    s = pd.DataFrame(payload["inner_cv_results"])
++    assert len(s) == 16 and set(s.candidate) == set(range(16))
++    assert not s.duplicated(["repeat", "fold", "candidate"]).any()
++    assert set(s["repeat"]) == {repeat} and set(s.fold) == {fold}
++    assert set(s.model) == {MODEL} and s.n_estimators.eq(500).all()
++    for r in s.to_dict("records"):
++        assert r["params_json"] == params_json(MODEL_GRIDS[MODEL][r["candidate"]])
++        scores = [r[f"inner_fold_{k}_auroc"] for k in range(5)]
++        assert all(np.isfinite(scores)) and np.isclose(np.mean(scores), r["mean_inner_auroc"], atol=1e-14)
++        assert np.isclose(np.std(scores, ddof=1), r["inner_auroc_sd"], atol=1e-14)
++    chosen = s.sort_values(["mean_inner_auroc", "candidate"], ascending=[False, True]).iloc[0]
++    i = pd.DataFrame(payload["selected_inner_oof"])
++    exp_i = inner.query("repeat == @repeat and fold == @fold").sort_values("id")
++    assert len(i) == len(exp_i) and not i.id.duplicated().any() and not set(i.id) & set(p.id)
++    pd.testing.assert_frame_equal(i.sort_values("id")[["id", "y_true", "inner_fold", "repeat", "fold"]].reset_index(drop=True),
++        exp_i[["id", "y_true", "inner_fold", "repeat", "fold"]].reset_index(drop=True), check_dtype=False)
++    assert np.isfinite(i.y_prob).all() and i.y_prob.between(0, 1).all()
++    assert set(i.id) == set(data.id) - set(p.id)
++    threshold, sens = select_threshold_target_sensitivity(i.y_true, i.y_prob, .95)
++    assert np.isclose(threshold, p.threshold.iloc[0], atol=1e-14, rtol=0)
++    assert i.threshold.eq(threshold).all() and sens >= .95
++    assert np.array_equal(i.predicted_class, i.y_prob.ge(i.threshold).astype(int))
++    assert len(payload["fold_results"]) == 1
++    r = payload["fold_results"][0]
++    assert (r["repeat"], r["fold"], r["model"]) == (repeat, fold, MODEL)
++    assert r["selected_candidate"] == int(chosen.candidate) and r["params_json"] == chosen.params_json
++    assert np.isclose(r["threshold"], threshold, atol=1e-14, rtol=0)
++    assert np.isclose(r["inner_sensitivity"], sens, atol=1e-14)
++    assert np.isclose(r["best_mean_inner_auroc"], chosen.mean_inner_auroc, atol=1e-14)
++    assert r["n_train"] == len(i) and r["n_validation"] == len(p)
++    assert r["n_train_malignant"] == int(i.y_true.sum())
++    assert r["n_validation_malignant"] == int(p.y_true.sum())
++    assert r["n_train_benign"] == int(i.y_true.eq(0).sum())
++    assert r["n_validation_benign"] == int(p.y_true.eq(0).sum())
++    assert r["inner_forest_fits"] == 80 and r["final_forest_fits"] == 1 and r["n_estimators"] == 500
++    assert np.isclose(r["pooled_inner_auroc"] if "pooled_inner_auroc" in r else roc_auc_score(i.y_true, i.y_prob),
++                      roc_auc_score(i.y_true, i.y_prob))
++    for metric, value in summarize_prediction_rows(p).items():
++        assert np.isclose(r[metric], value, equal_nan=True, atol=1e-12)
++    assert np.isclose(r["validation_auroc"], r["auroc"])
++    assert np.isclose(r["training_validation_gap"], r["train_resubstitution_auroc"] - r["auroc"])
++    assert 0 <= r["train_resubstitution_auroc"] <= 1
++    importance = pd.DataFrame(payload["feature_importances"])
++    assert len(importance) == 30 and set(importance.feature) == set(FEATURE_NAMES)
++    assert not importance.feature.duplicated().any() and importance.importance.ge(0).all()
++    assert set(importance["repeat"]) == {repeat} and set(importance.fold) == {fold}
++    assert np.isclose(importance.importance.sum(), 1)
++
++
++def checkpoint_path(out, repeat, fold):
++    return out / "checkpoints" / f"repeat_{repeat:02d}_fold_{fold}.json"
++
++
++def load_checkpoint(path, manifest, repeat, fold, data, outer, inner):
++    wrapper = json.loads(path.read_text())
++    assert wrapper["run_id"] == manifest["run_id"] and wrapper["fingerprint"] == manifest["fingerprint"]
++    assert wrapper["payload_sha256"] == digest(wrapper["payload"])
++    validate_fold(wrapper["payload"], repeat, fold, data, outer, inner)
++    return wrapper["payload"]
++
++
++def export_and_verify(out, manifest, complete):
++    data, outer, inner = data_and_splits()
++    payloads = []
++    for repeat in range(1, 11):
++        for fold in range(5):
++            path = checkpoint_path(out, repeat, fold)
++            if path.exists():
++                payloads.append(load_checkpoint(path, manifest, repeat, fold, data, outer, inner))
++    for key, filename in [
++        ("predictions", "oof_predictions.csv"), ("fold_results", "fold_results.csv"),
++        ("inner_cv_results", "inner_cv_results.csv"), ("selected_inner_oof", "selected_inner_oof.csv"),
++        ("feature_importances", "feature_importances.csv")]:
++        pd.DataFrame([r for p in payloads for r in p[key]]).to_csv(out / filename, index=False)
++    p = pd.read_csv(out / "oof_predictions.csv")
++    assert not p.duplicated(["model", "repeat", "id"]).any()
++    checks = dict(completed_outer_folds=len(payloads), expected_outer_folds=50,
++                  prediction_rows=len(p), complete=complete,
++                  checkpoint_integrity_and_full_fold_alignment=True,
++                  selected_inner_oof_thresholds_recomputed=True,
++                  old_rf_outputs_consumed=False)
++    if complete:
++        assert len(payloads) == 50 and len(p) == 5690
++        align_reference(p, outer, MODEL)
++        assert p.groupby("repeat").size().eq(569).all()
++        reps, calibration = [], []
++        for repeat, g in p.groupby("repeat"):
++            reps.append(dict(repeat=int(repeat), model=MODEL, **summarize_prediction_rows(g)))
++            cal = compute_calibration_curve(g.y_true, g.y_prob, n_bins=5)
++            assert sum(cal["bin_counts"]) == 569
++            calibration.extend(dict(repeat=int(repeat), bin=b, mean_probability=v,
++                                    observed_fraction=y, n=n)
++                for b, (v, y, n) in enumerate(zip(cal["bin_pred_mean"], cal["bin_true_prop"], cal["bin_counts"]), 1))
++        reps = pd.DataFrame(reps)
++        reps.to_csv(out / "repeat_metrics.csv", index=False)
++        metrics = [c for c in reps if c not in ["repeat", "model", "N"]]
++        summary = reps[metrics].agg(["mean", "std", "min", "max"]).T.reset_index(names="metric")
++        summary.to_csv(out / "summary_metrics.csv", index=False)
++        pd.DataFrame(calibration).to_csv(out / "calibration_points.csv", index=False)
++        # Independent formulas verify the CSV metrics rather than reusing the shared helper alone.
++        from sklearn.metrics import average_precision_score, brier_score_loss, log_loss, confusion_matrix
++        for r in reps.to_dict("records"):
++            g = p.loc[p["repeat"].eq(r["repeat"])]
++            y, prob = g.y_true.to_numpy(), g.y_prob.to_numpy()
++            tn, fp, fn, tp = confusion_matrix(y, prob >= g.threshold.to_numpy(), labels=[0, 1]).ravel()
++            independent = dict(auroc=roc_auc_score(y, prob), auprc=average_precision_score(y, prob),
++                brier_score=brier_score_loss(y, prob), log_loss=log_loss(y, np.clip(prob, 1e-15, 1-1e-15)),
++                sensitivity=tp/(tp+fn), specificity=tn/(tn+fp), ppv=tp/(tp+fp) if tp+fp else np.nan,
++                npv=tn/(tn+fn) if tn+fn else np.nan, TN=tn, FP=fp, FN=fn, TP=tp,
++                mean_predicted=prob.mean(), observed_prevalence=y.mean())
++            for key, val in independent.items():
++                assert np.isclose(r[key], val, equal_nan=True, atol=1e-12)
++        checks.update(repeat_rows=len(reps), candidate_rows=sum(len(v["inner_cv_results"]) for v in payloads),
++                      independent_metric_recalculation=True, all_required_checks_passed=True)
++    write_json(out / "verification.json", checks)
++    return checks
++
++
++def initialize(out, workers):
++    info = audit(out)
++    config = dict(model=MODEL, repeats=10, outer_folds=5, inner_folds=5, grid=MODEL_GRIDS[MODEL],
++        n_estimators=500, n_jobs=1, outer_task_workers=workers, target_sensitivity=.95,
++        outer_seed="707 + zero_based_repeat", inner_seed="1707 + 100*zero_based_repeat + fold",
++        candidate_seed="inner_seed + 100*candidate + inner_fold",
++        final_seed="707 + 10000*zero_based_repeat + 100*fold",
++        tie_rule="highest mean inner AUROC; lowest candidate index on exact tie",
++        probability_column="lookup classes_==1", preprocessing="none",
++        threshold_oof="selected candidate same inner OOF; no third layer",
++        log_loss_clip=[1e-15, 1-1e-15])
++    fingerprint = digest(dict(audit=info, config=config))
++    path = out / "run_manifest.json"
++    if path.exists():
++        m = json.loads(path.read_text())
++        if m["fingerprint"] != fingerprint:
++            raise RuntimeError("Data/code/config/environment changed. Use a new personal output directory.")
++    else:
++        from final_analysis import make_model
++        defaults = make_model(MODEL, MODEL_GRIDS[MODEL][0], 707).set_params(n_jobs=1).get_params()
++        m = dict(run_id=str(uuid.uuid4()), fingerprint=fingerprint, started_utc=utc(),
++            status="initialized", audit=info, config=config, forest_example_parameters=defaults,
++            commands=[], sessions=[], git_state="local generated files only; no commit/push/PR",
++            source_changes="New src/yan/random_forest and scripts/yan files; shared files unchanged")
++        write_json(path, m)
++    return m
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("stage", choices=["audit", "pilot", "run", "verify", "report"])
++    parser.add_argument("--output", type=Path, default=OUT)
++    parser.add_argument("--workers", type=int, default=2)
++    args = parser.parse_args()
++    out = args.output.resolve()
++    if not out.is_relative_to((ROOT / "results/yan/random_forest").resolve()):
++        parser.error("Output must stay inside results/yan/random_forest; shared results are protected.")
++    if args.workers not in (1, 2):
++        parser.error("Use one or two outer workers; every forest uses n_jobs=1.")
++    out.mkdir(parents=True, exist_ok=True)
++    if args.stage == "audit":
++        print(json.dumps(audit(out), indent=2)); return
++    if args.stage == "report":
++        from .report import build_report
++        build_report(out); return
++    m = initialize(out, args.workers)
++    data, outer, inner = data_and_splits()
++    if args.stage == "verify":
++        print(export_and_verify(out, m, complete=True)); return
++    tick = time.perf_counter()
++    m["commands"].append(dict(utc=utc(), argv=sys.argv))
++    m["status"] = "running"
++    write_json(out / "run_manifest.json", m)
++    targets = [(1, 0)] if args.stage == "pilot" else [(r, f) for r in range(1, 11) for f in range(5)]
++    pending = []
++    for repeat, fold in targets:
++        path = checkpoint_path(out, repeat, fold)
++        if path.exists():
++            load_checkpoint(path, m, repeat, fold, data, outer, inner)
++        else:
++            pending.append((repeat, fold))
++    if args.stage == "run":
++        # Full analysis follows only after an audited complete 16-candidate pilot.
++        assert checkpoint_path(out, 1, 0).exists(), "Run pilot first."
++        load_checkpoint(checkpoint_path(out, 1, 0), m, 1, 0, data, outer, inner)
++    def save(payload, r, f):
++        validate_fold(payload, r, f, data, outer, inner)
++        write_json(checkpoint_path(out, r, f), dict(run_id=m["run_id"],
++            fingerprint=m["fingerprint"], payload_sha256=digest(payload), payload=payload))
++        print(f"Saved repeat {r}/10 fold {f}/4; candidates=16, fits=81; "
++              f"seconds={payload['fold_results'][0]['total_seconds']:.1f}", flush=True)
++    try:
++        if args.stage == "pilot" or args.workers == 1:
++            for r, f in pending:
++                save(run_fold(r, f), r, f)
++        else:
++            with ProcessPoolExecutor(max_workers=args.workers) as pool:
++                futures = {pool.submit(run_fold, r, f): (r, f) for r, f in pending}
++                for future in as_completed(futures):
++                    r, f = futures[future]
++                    save(future.result(), r, f)
++        checks = export_and_verify(out, m, complete=args.stage == "run")
++        m["status"] = "complete_verified" if args.stage == "run" else "pilot_verified"
++        m["verification"] = checks
++    except BaseException as error:
++        m["status"] = "interrupted_or_failed"
++        m["last_error"] = repr(error)
++        raise
++    finally:
++        m["sessions"].append(dict(stage=args.stage, finished_utc=utc(),
++            wall_seconds=time.perf_counter()-tick, newly_fitted_outer_folds=len(pending)))
++        m["updated_utc"] = utc()
++        write_json(out / "run_manifest.json", m)
++
+diff --git a/src/yan/random_forest/verify.py b/src/yan/random_forest/verify.py
+new file mode 100644
+index 0000000..a16dffc
+--- /dev/null
++++ b/src/yan/random_forest/verify.py
+@@ -0,0 +1,151 @@
++"""Independent exported-CSV and provenance checks; no fitting and no threshold retuning."""
++from pathlib import Path
++import argparse
++import io
++import json
++import subprocess
++import sys
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
++
++import numpy as np
++import pandas as pd
++from sklearn.metrics import roc_auc_score
++from metrics import select_threshold_target_sensitivity, compute_calibration_curve
++from yan.random_forest.audit import (ROOT, OUT, MODEL, sha, write_json, data_and_splits,
++                                     align_reference, TRAINING_FILES)
++from yan.random_forest.train import load_checkpoint, checkpoint_path, export_and_verify
++
++
++def verify(out=OUT):
++    manifest = json.loads((out / "run_manifest.json").read_text())
++    assert manifest["status"] == "complete_verified"
++    assert manifest["audit"]["existing_rf_results_used"] is False
++    for path, checksum in manifest["audit"]["input_sha256"].items():
++        assert sha(ROOT / path) == checksum, f"Input changed: {path}"
++    for path in TRAINING_FILES:
++        assert sha(ROOT / path) == manifest["audit"]["training_source_sha256"][path], path
++    checks = export_and_verify(out, manifest, complete=True)
++    data, outer, inner = data_and_splits()
++    p = pd.read_csv(out / "oof_predictions.csv")
++    folds = pd.read_csv(out / "fold_results.csv")
++    search = pd.read_csv(out / "inner_cv_results.csv")
++    selected = pd.read_csv(out / "selected_inner_oof.csv")
++    importance = pd.read_csv(out / "feature_importances.csv")
++    exp = pd.read_csv(out / "outer_fold_assignments.csv")
++    exp_inner = pd.read_csv(out / "inner_fold_assignments.csv")
++    pd.testing.assert_frame_equal(outer, exp, check_dtype=False)
++    pd.testing.assert_frame_equal(inner, exp_inner, check_dtype=False)
++    assert len(folds) == 50 and not folds.duplicated(["repeat", "fold"]).any()
++    assert len(search) == 800 and search.groupby(["repeat", "fold"]).size().eq(16).all()
++    assert len(importance) == 1500 and importance.groupby(["repeat", "fold"]).size().eq(30).all()
++    assert importance.groupby(["repeat", "fold"]).importance.sum().sub(1).abs().lt(1e-12).all()
++    assert len(selected) == len(inner) == 22760
++    assert not selected.duplicated(["repeat", "fold", "id"]).any()
++    assert folds.n_estimators.eq(500).all() and search.n_estimators.eq(500).all()
++    assert folds.inner_forest_fits.sum() == 4000 and folds.final_forest_fits.sum() == 50
++    assert folds.n_jobs.eq(1).all()
++    assert folds.threshold_additional_model_fit_seconds.eq(0).all()
++    checked_scores = 0
++    for repeat in range(1, 11):
++        for fold in range(5):
++            payload = load_checkpoint(checkpoint_path(out, repeat, fold), manifest,
++                                      repeat, fold, data, outer, inner)
++            r = folds.query("repeat == @repeat and fold == @fold").iloc[0]
++            s = search.query("repeat == @repeat and fold == @fold").sort_values("candidate")
++            ordered = s.sort_values(["mean_inner_auroc", "candidate"], ascending=[False, True])
++            assert ordered["rank"].tolist() == list(range(1, 17))
++            assert r.selected_candidate == ordered.candidate.iloc[0]
++            assert r.inner_seed == 1707 + 100*(repeat-1) + fold
++            assert r.outer_seed == 707 + 10000*(repeat-1) + 100*fold
++            for row in s.to_dict("records"):
++                expected_seeds = [int(r.inner_seed)+100*row["candidate"]+k for k in range(5)]
++                assert json.loads(row["inner_model_seeds_json"]) == expected_seeds
++                assert len(json.loads(row["inner_fit_seconds_json"])) == 5
++                assert all(v > 0 for v in json.loads(row["inner_fit_seconds_json"]))
++                assert row["seconds"] > 0
++            g = selected.query("repeat == @repeat and fold == @fold")
++            chosen = s.loc[s.candidate.eq(r.selected_candidate)].iloc[0]
++            for k, group in g.groupby("inner_fold"):
++                auc = roc_auc_score(group.y_true, group.y_prob)
++                assert np.isclose(auc, chosen[f"inner_fold_{k}_auroc"], atol=1e-12)
++                checked_scores += 1
++            assert np.isclose(roc_auc_score(g.y_true, g.y_prob), chosen.pooled_inner_auroc, atol=1e-12)
++            t, sens = select_threshold_target_sensitivity(g.y_true, g.y_prob, .95)
++            assert np.isclose(t, r.threshold, atol=1e-14, rtol=0)
++            assert np.isclose(sens, r.inner_sensitivity, atol=1e-14)
++            # Discrete brute-force oracle verifies the highest qualifying candidate.
++            valid = [v for v in np.unique(g.y_prob)
++                     if ((g.y_prob >= v) & g.y_true.eq(1)).sum()/g.y_true.sum() >= .95]
++            assert np.isclose(t, max(valid), atol=1e-14, rtol=0)
++            assert np.array_equal(g.predicted_class, g.y_prob.ge(g.threshold).astype(int))
++            assert not set(g.id) & set(p.query("repeat == @repeat and fold == @fold").id)
++            for key, filename in [("predictions", "oof_predictions.csv"),
++                                  ("inner_cv_results", "inner_cv_results.csv"),
++                                  ("feature_importances", "feature_importances.csv")]:
++                exported = {"predictions": p, "inner_cv_results": search,
++                            "feature_importances": importance}[key]
++                exported = exported.query("repeat == @repeat and fold == @fold")
++                expected = pd.DataFrame(payload[key])
++                order = {"predictions": ["id"], "inner_cv_results": ["candidate"],
++                         "feature_importances": ["feature"]}[key]
++                pd.testing.assert_frame_equal(exported.sort_values(order).reset_index(drop=True),
++                    expected.sort_values(order).reset_index(drop=True), check_dtype=False,
++                    check_exact=False, atol=1e-12, rtol=1e-12)
++    calibration = pd.read_csv(out / "calibration_points.csv")
++    for repeat, group in p.groupby("repeat"):
++        c = compute_calibration_curve(group.y_true, group.y_prob, n_bins=5)
++        actual = calibration.loc[calibration["repeat"].eq(repeat)].sort_values("bin")
++        assert actual.n.sum() == 569 and np.array_equal(actual.n, c["bin_counts"])
++        np.testing.assert_allclose(actual.mean_probability, c["bin_pred_mean"], atol=1e-14)
++        np.testing.assert_allclose(actual.observed_fraction, c["bin_true_prop"], atol=1e-14)
++
++    # Read actual branch data/predictions too, when the cloned refs are available.
++    branch_checks = {}
++    for ref in ["origin/Haiyi-branches", "origin/asher/svm-analysis"]:
++        try:
++            blob = subprocess.check_output(["git", "-C", str(ROOT), "show",
++                ref + ":data/processed/wdbc_clean.csv"])
++        except subprocess.CalledProcessError:
++            branch_checks[ref] = "not available; not checked"
++            continue
++        branch_data = pd.read_csv(io.BytesIO(blob)).sort_values("id").reset_index(drop=True)
++        pd.testing.assert_frame_equal(branch_data, data, check_exact=False, atol=1e-14, rtol=1e-14)
++        branch_checks[ref] = dict(data_values_features_labels_identical=True,
++                                 data_blob_sha256=__import__("hashlib").sha256(blob).hexdigest())
++    try:
++        blob = subprocess.check_output(["git", "-C", str(ROOT), "show",
++            "origin/asher/svm-analysis:results/svm/nested/outer_predictions.csv"])
++        svm = pd.read_csv(io.BytesIO(blob))
++        for name in ["Linear_SVM", "RBF_SVM"]:
++            actual = align_reference(svm.loc[svm.model.eq(name)], outer, name)
++            main = align_reference(pd.read_csv(ROOT / f"results/final_nested/predictions/{name}.csv"),
++                                   outer, name)
++            np.testing.assert_allclose(actual.y_prob, main.y_prob, rtol=0, atol=1e-14)
++            np.testing.assert_allclose(actual.threshold, main.threshold, rtol=0, atol=1e-14)
++        branch_checks["svm_archived_predictions_match_final_main"] = True
++    except subprocess.CalledProcessError:
++        branch_checks["svm_archive"] = "not available; not checked"
++    # Core source in Haiyi's branch is available and identical, or disclosed.
++    core = {}
++    for path in ["src/final_analysis.py", "src/data_prep.py", "src/metrics.py"]:
++        try:
++            blob = subprocess.check_output(["git", "-C", str(ROOT), "show", "origin/Haiyi-branches:" + path])
++            core[path] = blob == (ROOT / path).read_bytes()
++        except subprocess.CalledProcessError:
++            core[path] = "not available; not checked"
++    checks.update(selected_inner_fold_auroc_recomputed=checked_scores,
++        checkpoint_csv_roundtrip=True, class_1_probability_lookup=True,
++        all_candidate_seed_records_checked=True, threshold_bruteforce_oracle_passed=True,
++        raw_clean_agreement=True, actual_branch_checks=branch_checks,
++        haiyi_core_identical=core, completed_inner_forest_fits=4000, completed_final_forest_fits=50,
++        feature_importance_rows=1500, selected_inner_oof_rows=len(selected),
++        report_sources="All statistics recomputable from exported CSV; no model refits during verification")
++    write_json(out / "extended_verification.json", checks)
++    print(json.dumps(checks, indent=2))
++    return checks
++
++
++if __name__ == "__main__":
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--output", type=Path, default=OUT)
++    verify(parser.parse_args().output.resolve())

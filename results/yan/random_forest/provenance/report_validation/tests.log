@@ -1,0 +1,39 @@
+test_feature_groups_partition_the_thirty_predictors (test_final_analysis.FinalAnalysisTests.test_feature_groups_partition_the_thirty_predictors) ... ok
+test_repeat_summary_uses_each_rows_training_selected_threshold (test_final_analysis.FinalAnalysisTests.test_repeat_summary_uses_each_rows_training_selected_threshold) ... ok
+test_scaling_is_inside_linear_model_pipelines (test_final_analysis.FinalAnalysisTests.test_scaling_is_inside_linear_model_pipelines) ... ok
+test_paired_bootstrap_differences_use_matching_resamples (test_metrics.MetricsTests.test_paired_bootstrap_differences_use_matching_resamples) ... ok
+test_selects_highest_threshold_meeting_sensitivity_target (test_metrics.MetricsTests.test_selects_highest_threshold_meeting_sensitivity_target) ... ok
+test_all_three_files_are_compatible_and_summary_has_one_rf (test_rf_integration.ExportTests.test_all_three_files_are_compatible_and_summary_has_one_rf) ... ok
+test_legacy_archive_without_yan_manifest_is_still_readable (test_rf_integration.ExportTests.test_legacy_archive_without_yan_manifest_is_still_readable) ... ok
+test_mixing_only_search_file_is_rejected (test_rf_integration.ExportTests.test_mixing_only_search_file_is_rejected) ... ok
+test_old_rf_slots_are_backed_up_then_wholly_replaced (test_rf_integration.ExportTests.test_old_rf_slots_are_backed_up_then_wholly_replaced) ... ok
+test_partial_publish_without_commit_marker_cannot_be_summarized (test_rf_integration.ExportTests.test_partial_publish_without_commit_marker_cannot_be_summarized) ... ok
+test_run_id_mismatch_is_rejected (test_rf_integration.ExportTests.test_run_id_mismatch_is_rejected) ... ok
+test_common_rf_route_calls_yan_once_and_never_old_search (test_rf_integration.RoutingTests.test_common_rf_route_calls_yan_once_and_never_old_search) ... ok
+test_duplicate_rf_request_fails_before_training (test_rf_integration.RoutingTests.test_duplicate_rf_request_fails_before_training) ... ok
+test_formal_defaults_are_ten_repeats_and_five_inner_outer_folds (test_rf_integration.RoutingTests.test_formal_defaults_are_ten_repeats_and_five_inner_outer_folds) ... ok
+test_non_rf_call_signatures_are_preserved_without_real_model_fits (test_rf_integration.RoutingTests.test_non_rf_call_signatures_are_preserved_without_real_model_fits) ... Ridge_Logistic: repeat 1/1, outer fold 1/5
+Ridge_Logistic: repeat 1/1, outer fold 2/5
+Ridge_Logistic: repeat 1/1, outer fold 3/5
+Ridge_Logistic: repeat 1/1, outer fold 4/5
+Ridge_Logistic: repeat 1/1, outer fold 5/5
+ok
+test_rf_refuses_nonproposal_fold_counts (test_rf_integration.RoutingTests.test_rf_refuses_nonproposal_fold_counts) ... ok
+test_changed_fold_or_label_is_rejected (test_rf_reporting.ReportingChecks.test_changed_fold_or_label_is_rejected) ... ok
+test_complete_report_never_fits_or_changes_primary_files (test_rf_reporting.ReportingChecks.test_complete_report_never_fits_or_changes_primary_files) ... ok
+test_missing_or_unconfirmed_owner_never_uses_shared_model_results (test_rf_reporting.ReportingChecks.test_missing_or_unconfirmed_owner_never_uses_shared_model_results) ... ok
+test_repeat_auc_is_pooled_and_locked_thresholds_are_used (test_rf_reporting.ReportingChecks.test_repeat_auc_is_pooled_and_locked_thresholds_are_used) ... ok
+test_tied_calibration_edges_cover_every_record_once (test_rf_reporting.ReportingChecks.test_tied_calibration_edges_cover_every_record_once) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 4.199s
+
+OK
+{
+  "primary_files_unchanged": true,
+  "comparisons": {
+    "svm": "verified owner-specific nested predictions; metrics recomputed from pooled outer records",
+    "regression": "pending owner-attributed compatible predictions"
+  },
+  "formal_report": "report_section.md"
+}
