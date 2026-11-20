@@ -1,0 +1,40 @@
+{
+  "completed_outer_folds": 50,
+  "expected_outer_folds": 50,
+  "prediction_rows": 5690,
+  "complete": true,
+  "checkpoint_integrity_and_full_fold_alignment": true,
+  "selected_inner_oof_thresholds_recomputed": true,
+  "old_rf_outputs_consumed": false,
+  "repeat_rows": 10,
+  "candidate_rows": 800,
+  "independent_metric_recalculation": true,
+  "all_required_checks_passed": true,
+  "selected_inner_fold_auroc_recomputed": 250,
+  "checkpoint_csv_roundtrip": true,
+  "class_1_probability_lookup": true,
+  "all_candidate_seed_records_checked": true,
+  "threshold_bruteforce_oracle_passed": true,
+  "raw_clean_agreement": true,
+  "actual_branch_checks": {
+    "origin/Haiyi-branches": {
+      "data_values_features_labels_identical": true,
+      "data_blob_sha256": "793b6ccd285e487d79f41573aec27df644f69fa3b9a92eefaba3fef13cb2b136"
+    },
+    "origin/asher/svm-analysis": {
+      "data_values_features_labels_identical": true,
+      "data_blob_sha256": "793b6ccd285e487d79f41573aec27df644f69fa3b9a92eefaba3fef13cb2b136"
+    },
+    "svm_archived_predictions_match_final_main": true
+  },
+  "haiyi_core_identical": {
+    "src/final_analysis.py": true,
+    "src/data_prep.py": true,
+    "src/metrics.py": true
+  },
+  "completed_inner_forest_fits": 4000,
+  "completed_final_forest_fits": 50,
+  "feature_importance_rows": 1500,
+  "selected_inner_oof_rows": 22760,
+  "report_sources": "All statistics recomputable from exported CSV; no model refits during verification"
+}
