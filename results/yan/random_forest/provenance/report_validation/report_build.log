@@ -1,0 +1,8 @@
+{
+  "primary_files_unchanged": true,
+  "comparisons": {
+    "svm": "verified owner-specific nested predictions; metrics recomputed from pooled outer records",
+    "regression": "pending owner-attributed compatible predictions"
+  },
+  "formal_report": "report_section.md"
+}

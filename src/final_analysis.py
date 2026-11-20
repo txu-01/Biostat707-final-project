@@ -347,7 +347,15 @@ def run_primary_nested(
     x_all = data[FEATURE_NAMES]
     y_all = data["target"].to_numpy(dtype=int)
 
+    if models.count("Random_Forest") > 1:
+        raise ValueError("Random_Forest may appear only once in the model list.")
     for model_name in models:
+        if model_name == "Random_Forest":
+            from yan.random_forest.integration import run_shared_random_forest
+            run_shared_random_forest(
+                data, output, repeats, outer_folds, inner_folds, resume=resume
+            )
+            continue
         if model_name in {"Linear_SVM", "RBF_SVM"}:
             continue
         pred_path = prediction_dir / f"{model_name}.csv"
@@ -534,7 +542,40 @@ def import_existing_svm_predictions(output: Path, repeats: int, outer_folds: int
             )
 
 
+def _validate_summary_alignment(predictions: pd.DataFrame, data: pd.DataFrame):
+    """Require a common repeat set and the shared ID/label/fold map before writing."""
+    keys = ["id", "y_true", "repeat", "fold"]
+    if not set(keys).issubset(predictions.columns) or predictions[keys].isna().any().any():
+        raise ValueError("Outer predictions require nonmissing ID, label, repeat and fold.")
+    repeats = predictions["repeat"].to_numpy(dtype=float)
+    if not np.isfinite(repeats).all() or (repeats < 1).any() or (repeats != np.floor(repeats)).any():
+        raise ValueError("Repeat numbers must be positive integers.")
+    repeat_sets = predictions.groupby("model")["repeat"].apply(lambda values: set(values))
+    common = repeat_sets.iloc[0]
+    if not all(values == common for values in repeat_sets):
+        raise ValueError("Models have different repeat sets; refusing a partial paired summary.")
+    expected = []
+    for repeat in sorted(common):
+        for fold, (_, valid) in enumerate(_outer_split(data, int(repeat)-1, 5)):
+            expected.extend(dict(id=data.id.iloc[i], y_true=data.target.iloc[i],
+                                 repeat=int(repeat), fold=fold) for i in valid)
+    expected = pd.DataFrame(expected)[keys].sort_values(["repeat", "id"]).reset_index(drop=True)
+    for model, rows in predictions.groupby("model"):
+        actual = rows[keys].sort_values(["repeat", "id"]).reset_index(drop=True)
+        try:
+            pd.testing.assert_frame_equal(actual, expected, check_dtype=False, check_exact=True)
+        except AssertionError as error:
+            raise ValueError(f"ID/label/repeat/fold mapping is incomplete or inconsistent for {model}.") from error
+
+
 def summarize_primary(output: Path):
+    # An integrated RF export is valid only as a complete three-file bundle.
+    # Untouched legacy archives can still be summarized without training.
+    if (output / "random_forest_export.json").exists() or (
+        output / "yan" / "random_forest" / "active_run.json"
+    ).exists():
+        from yan.random_forest.integration import validate_shared_export
+        validate_shared_export(output)
     prediction_dir = output / "predictions"
     frames = []
     for model_name in PRIMARY_MODELS:
@@ -543,19 +584,15 @@ def summarize_primary(output: Path):
             frame = pd.read_csv(path)
             if "model" not in frame:
                 frame["model"] = model_name
+            if set(frame["model"]) != {model_name}:
+                raise ValueError(f"Model label does not match prediction file {path.name}.")
             frames.append(frame)
     if not frames:
         raise FileNotFoundError("No repeated nested-CV prediction files were found.")
     predictions = pd.concat(frames, ignore_index=True)
-    truth = load_data().set_index("id")["target"]
     if predictions.duplicated(["model", "repeat", "id"]).any():
         raise ValueError("Duplicate model/repeat/ID predictions were found.")
-    expected_truth = predictions["id"].map(truth)
-    if expected_truth.isna().any() or not np.array_equal(
-        predictions["y_true"].to_numpy(dtype=int),
-        expected_truth.to_numpy(dtype=int),
-    ):
-        raise ValueError("Outer predictions contain an unknown ID or incorrect label.")
+    _validate_summary_alignment(predictions, load_data())
     for column in ["y_prob", "threshold"]:
         values = predictions[column].to_numpy(dtype=float)
         if not np.isfinite(values).all() or not ((0 <= values) & (values <= 1)).all():
@@ -637,6 +674,9 @@ def summarize_primary(output: Path):
         difference_summary.to_csv(
             output / "paired_difference_summary_vs_stable_logistic.csv", index=False
         )
+    if (output / "random_forest_export.json").exists():
+        from yan.random_forest.integration import record_shared_summary
+        record_shared_summary(output)
     return repeat_metrics, summary
 
 
@@ -908,4 +948,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # The RF module imports shared helpers by this canonical module name.
+    import sys
+    sys.modules.setdefault("final_analysis", sys.modules[__name__])
     main()

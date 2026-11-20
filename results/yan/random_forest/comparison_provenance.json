@@ -1,0 +1,86 @@
+{
+  "research_standard": {
+    "file": "707-proposal.md",
+    "git_blob": "55e39287b36359ed8ab83449f6ad63d963439dd7",
+    "source_commit": "06349f89853e55d9b46b98304e68d6580abafa48",
+    "sha256": "92194fb26b0fa3abdc5528bd7c7a8bc494d1e7b8a0a4344698c57577166e9398"
+  },
+  "svm": {
+    "owner": "Asher Xu",
+    "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+    "branch": "asher/svm-analysis",
+    "eligible": true,
+    "models": [
+      "Linear_SVM",
+      "RBF_SVM"
+    ],
+    "files": {
+      "outer_predictions.csv": {
+        "original_path": "results/svm/nested/outer_predictions.csv",
+        "sha256": "7d13659a32e7f284f2a7d81efef2aa8e30c87e4cd4f9c644c0e1db9cfb127f3b",
+        "git_blob": "40e17f04dc21140888708683d5bce715396ff74c"
+      },
+      "input_data.csv": {
+        "original_path": "data/processed/wdbc_clean.csv",
+        "sha256": "793b6ccd285e487d79f41573aec27df644f69fa3b9a92eefaba3fef13cb2b136",
+        "git_blob": "b8d20104c1a3e3d53e0ff37ed9d1de8767435ce3"
+      },
+      "source/run_svm_nested.py": {
+        "original_path": "scripts/run_svm_nested.py",
+        "sha256": "3974a4db036d0e49cb5120272f61aeb0119892c2b2944240358f7eba7ceae242",
+        "git_blob": "569b8ea5a342b4d191c2455d058c2d7fe9fdfb6b"
+      },
+      "source/train_svm.py": {
+        "original_path": "src/train_svm.py",
+        "sha256": "3dc2f3304db0033ce4352e470d517562facea7977cc12febbff0590642974bf9",
+        "git_blob": "6eed0b4fda426f94ae4b23218f607d397bf53441"
+      },
+      "source/data_prep.py": {
+        "original_path": "src/data_prep.py",
+        "sha256": "a112768aaef28260ff91550f06fbebde31c1449714d57bd95b940f86149aa4e1",
+        "git_blob": "23e97ab391a7a23a8a9575e256d74c1764f80eef"
+      },
+      "source/metrics.py": {
+        "original_path": "src/metrics.py",
+        "sha256": "79a9da443e103075adeff92ac41ab84e3e6b90113bbceb625ce7ff1c5d4e5b3a",
+        "git_blob": "93418d0a5e6eacd4622a05160c23cd0ac4f34d32"
+      },
+      "source/requirements-svm.txt": {
+        "original_path": "requirements-svm.txt",
+        "sha256": "44ec2705941c7165458b8169df4c334beaf50e0afd8d184cb573b5a0038d670b"
+      }
+    },
+    "source_review": [
+      "Direct all-569-record nested script; not the 80/20 stage",
+      "30 named predictors, ID/target/diagnosis excluded",
+      "Outer seed 707+r on ID-sorted data; actual per-ID map will be checked",
+      "5-fold inner training-only search, mean AUROC selection",
+      "Training-only 3-fold sigmoid calibration with scaling inside base estimator",
+      "Threshold uses selected inner OOF; unchanged for outer validation",
+      "Legacy fold-averaged summary is excluded; pooled-repeat metrics are recomputed from individual predictions"
+    ],
+    "inner_seed_difference": "SVM:1707+5*r+fold; RF:1707+100*r+fold; outer assignments identical; no method change made",
+    "numeric_recomputation": "Only individual owner nested probabilities and their locked thresholds are used. No owner fold-averaged metrics or 80/20 output is used."
+  },
+  "regression": {
+    "owner": "Haiyi Xiong",
+    "branch": "Haiyi-branches",
+    "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+    "eligible": false,
+    "status": "pending_owner_attributed_predictions",
+    "reason": "Available per-record predictions are inherited shared imports. Owner coefficient replay/report is available, but no distinctly attributed per-record nested prediction export or explicit confirmation of that export is available. No regression numerical comparison is used.",
+    "needed": [
+      "Owner-confirmed compatible Logistic/Ridge/Elastic Net prediction file and version",
+      "id,y_true,model,repeat,fold,y_prob,threshold; 5690 records per model",
+      "Owner source/config and training-only tuning/threshold provenance"
+    ]
+  },
+  "excluded_sources": [
+    "Other RF versions",
+    "Shared all-model prediction/summary tables",
+    "FINAL_REPORT_DRAFT",
+    "Learning curves",
+    "80/20 test metrics",
+    "SVM legacy fold-averaged repeat summaries"
+  ]
+}

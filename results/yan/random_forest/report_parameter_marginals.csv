@@ -1,0 +1,9 @@
+parameter,value,selected_folds
+max_depth,3,3
+max_depth,unrestricted,47
+min_samples_leaf,1,33
+min_samples_leaf,3,13
+min_samples_leaf,5,4
+min_samples_leaf,10,0
+max_features,sqrt,42
+max_features,0.5,8

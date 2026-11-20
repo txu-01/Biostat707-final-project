@@ -1,0 +1,7 @@
+Random_Forest -> yan.random_forest.train.run_fold; 5 outer folds require fitting; resume=False; diagnostics=/workspace/work/shared_rf_checks/live/yan/random_forest/runs/0d058722-408c-4341-91a9-41a7c6c804ee
+Yan RF checkpoint: repeat=1, fold=0, candidates=16, inner fits=80, final fits=1
+Yan RF checkpoint: repeat=1, fold=1, candidates=16, inner fits=80, final fits=1
+Yan RF checkpoint: repeat=1, fold=2, candidates=16, inner fits=80, final fits=1
+Yan RF checkpoint: repeat=1, fold=3, candidates=16, inner fits=80, final fits=1
+Yan RF checkpoint: repeat=1, fold=4, candidates=16, inner fits=80, final fits=1
+RF shared export verified: 569 predictions, 5 outer rows, 80 candidates

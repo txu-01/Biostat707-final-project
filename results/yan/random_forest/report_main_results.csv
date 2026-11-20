@@ -1,0 +1,11 @@
+metric,label,mean,auroc_sd,display,unit,source_csv,source_column
+auroc,AUROC,0.9887320966122296,0.0008180001294200644,0.9887 ± 0.0008,score,repeat_metrics.csv,auroc
+auprc,AUPRC (average precision),0.9867451051023975,,0.9867,score,repeat_metrics.csv,auprc
+brier_score,Brier score,0.03320118474473714,,0.0332,score,repeat_metrics.csv,brier_score
+log_loss,Log loss,0.13998233822085665,,0.1400,score,repeat_metrics.csv,log_loss
+sensitivity,Sensitivity,0.9514150943396226,,95.14%,proportion,repeat_metrics.csv,sensitivity
+specificity,Specificity,0.9621848739495797,,96.22%,proportion,repeat_metrics.csv,specificity
+ppv,PPV,0.9373395809830756,,93.73%,proportion,repeat_metrics.csv,ppv
+npv,NPV,0.9708925814674876,,97.09%,proportion,repeat_metrics.csv,npv
+FN,False negatives per repeat,10.3,,10.3,records per 569-record repeat,repeat_metrics.csv,FN
+FP,False positives per repeat,13.5,,13.5,records per 569-record repeat,repeat_metrics.csv,FP

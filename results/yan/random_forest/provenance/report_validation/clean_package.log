@@ -1,0 +1,31 @@
+Command: /workspace/work/rf-env/bin/python scripts/yan/run.py report --output results/yan/random_forest
+{
+  "primary_files_unchanged": true,
+  "comparisons": {
+    "svm": "verified owner-specific nested predictions; metrics recomputed from pooled outer records",
+    "regression": "pending owner-attributed compatible predictions"
+  },
+  "formal_report": "report_section.md"
+}
+
+
+Command: /workspace/work/rf-env/bin/python -m unittest discover -s tests -p test_rf_reporting.py -v
+{
+  "primary_files_unchanged": true,
+  "comparisons": {
+    "svm": "verified owner-specific nested predictions; metrics recomputed from pooled outer records",
+    "regression": "pending owner-attributed compatible predictions"
+  },
+  "formal_report": "report_section.md"
+}
+
+test_changed_fold_or_label_is_rejected (test_rf_reporting.ReportingChecks.test_changed_fold_or_label_is_rejected) ... ok
+test_complete_report_never_fits_or_changes_primary_files (test_rf_reporting.ReportingChecks.test_complete_report_never_fits_or_changes_primary_files) ... ok
+test_missing_or_unconfirmed_owner_never_uses_shared_model_results (test_rf_reporting.ReportingChecks.test_missing_or_unconfirmed_owner_never_uses_shared_model_results) ... ok
+test_repeat_auc_is_pooled_and_locked_thresholds_are_used (test_rf_reporting.ReportingChecks.test_repeat_auc_is_pooled_and_locked_thresholds_are_used) ... ok
+test_tied_calibration_edges_cover_every_record_once (test_rf_reporting.ReportingChecks.test_tied_calibration_edges_cover_every_record_once) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.312s
+
+OK

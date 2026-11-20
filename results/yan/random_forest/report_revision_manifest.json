@@ -1,0 +1,44 @@
+{
+  "task": "Result audit and report refinement only",
+  "no_models_fitted": true,
+  "base_commit": "06349f89853e55d9b46b98304e68d6580abafa48",
+  "git_status": "local working tree only; no commit/push/PR",
+  "unchanged_against_previous_delivery_sha256": {
+    "README.md": "4e986c6cd8b60ad7e8453a30d85bfcc48e898c94943a4182469fe05c973a0c5a",
+    "src/final_analysis.py": "c9a19675dc26b4e68947d121c99d25e45c014d87270305585ee31921884598e0",
+    "src/yan/random_forest/train.py": "67e3f97992dd4e25ba5e86e5e31c25fc1bcb3da11dc36ea7523cb1f37fafec16",
+    "src/yan/random_forest/audit.py": "0a07801fe3d066aaa398fb173eee22b794c8db1c9b60cb560687e0424460fbe4",
+    "src/yan/random_forest/integration.py": "9ce23e67aa5b7dc0cc6d8a7ba024defb6218ef6a934bca511390c37175b8bdaa",
+    "results/yan/random_forest/oof_predictions.csv": "73b956e6597b81a1a2cd8fa97c854b577738f4b028007930a7572855baad82e2",
+    "results/yan/random_forest/fold_results.csv": "bf4ef3017fac86782f7c0b937446f5e5193b7780b1b3172f74fed6860f7483dd",
+    "results/yan/random_forest/inner_cv_results.csv": "1297c6a3365c2c19e0d0d3c8f48af5500a42ef4d866d3c01fababdee3f2d7000",
+    "results/yan/random_forest/selected_inner_oof.csv": "25167383f1784252ec48e95b5a853cf6b76d7872873df2c25b6f2ab5e330ad4a",
+    "results/yan/random_forest/feature_importances.csv": "3e784789cc527fa4705615a262f274fdd6a0c814c258635adb19ccfc4ff374d4",
+    "results/yan/random_forest/calibration_points.csv": "fa9bf315a065450191fbf8cf4291b3182653eeef60e381c66217470bd3aae678",
+    "results/yan/random_forest/repeat_metrics.csv": "473caa572d078a3082cacc902f500281f7ce3ac77b5305ec721b08efad9772ac",
+    "results/yan/random_forest/summary_metrics.csv": "b90f76183bda6bdae6d2df6d69ebd51c8f85cc398f053e851951c200e947f2e5"
+  },
+  "report_verification": "report_verification.json",
+  "pdf_versions": "report_pdf_manifest.json",
+  "comparison_eligibility": "comparison_provenance.json",
+  "change_list": "report_changes.csv",
+  "tests": "21 common/reporter/integration unit checks passed; 5 of these are report-specific checks, no real model fits",
+  "required_english_chapter": "report_section.md",
+  "group_integration_table": "report_main_results.csv",
+  "chinese_explanation": "results_explained_zh.md",
+  "regression_comparison": "pending owner-confirmed compatible predictions",
+  "excluded_numeric_sources": [
+    "Other Random Forest runs",
+    "Shared all-model summaries/predictions",
+    "FINAL_REPORT_DRAFT",
+    "Learning curves",
+    "80/20 SVM report",
+    "Legacy fold-averaged SVM summary"
+  ],
+  "source_sha256": {
+    "src/yan/random_forest/report.py": "a2326ade431f0d4bfe120b593c785a8750a3ede86031db8947b98273337d950e",
+    "src/yan/random_forest/reporting.py": "19839911105a0bd33649d2da6b94f85b0159e6d9756b70f0508931a293515a42",
+    "src/yan/random_forest/report_text.py": "a65f2f6a3befcc18afd4f7327b0f2b483811523362c327bc905ce6d94c117305",
+    "tests/test_rf_reporting.py": "f3c6c3b8d025f60a8d05225d1f600b657e45540e0b79747afdb7a2519a622a21"
+  }
+}

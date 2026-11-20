@@ -1,0 +1,2 @@
+Random_Forest -> yan.random_forest.train.run_fold; 0 outer folds require fitting; resume=True; diagnostics=/workspace/work/shared_rf_checks/live/yan/random_forest/runs/5d5013b8-72f5-4237-b2c5-911fa7495faa
+RF shared export verified: 569 predictions, 5 outer rows, 80 candidates

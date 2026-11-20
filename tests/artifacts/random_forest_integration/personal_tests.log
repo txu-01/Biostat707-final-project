@@ -1,0 +1,15 @@
+test_checkpoint_from_another_run_is_rejected (__main__.AuditTests.test_checkpoint_from_another_run_is_rejected) ... ok
+test_complete_pilot_passes_then_duplicate_predictions_fail (__main__.AuditTests.test_complete_pilot_passes_then_duplicate_predictions_fail) ... ok
+test_inner_oof_cannot_include_outer_validation_id (__main__.AuditTests.test_inner_oof_cannot_include_outer_validation_id) ... ok
+test_probability_column_is_looked_up_not_assumed (__main__.AuditTests.test_probability_column_is_looked_up_not_assumed) ... ok
+test_quantile_boundary_ties_preserve_all_records (__main__.AuditTests.test_quantile_boundary_ties_preserve_all_records) ... ok
+test_row_thresholds_and_undefined_predictive_values (__main__.AuditTests.test_row_thresholds_and_undefined_predictive_values) ... ok
+test_same_fold_counts_do_not_prove_identical_record_assignment (__main__.AuditTests.test_same_fold_counts_do_not_prove_identical_record_assignment) ... ok
+test_same_row_count_can_hide_duplicate_reference_ids (__main__.AuditTests.test_same_row_count_can_hide_duplicate_reference_ids) ... ok
+test_ties_and_boundaries_select_highest_qualifying_threshold (__main__.AuditTests.test_ties_and_boundaries_select_highest_qualifying_threshold) ... ok
+test_wrong_label_is_rejected (__main__.AuditTests.test_wrong_label_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.647s
+
+OK

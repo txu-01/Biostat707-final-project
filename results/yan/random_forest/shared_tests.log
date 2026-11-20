@@ -1,0 +1,10 @@
+test_feature_groups_partition_the_thirty_predictors (test_final_analysis.FinalAnalysisTests.test_feature_groups_partition_the_thirty_predictors) ... ok
+test_repeat_summary_uses_each_rows_training_selected_threshold (test_final_analysis.FinalAnalysisTests.test_repeat_summary_uses_each_rows_training_selected_threshold) ... ok
+test_scaling_is_inside_linear_model_pipelines (test_final_analysis.FinalAnalysisTests.test_scaling_is_inside_linear_model_pipelines) ... ok
+test_paired_bootstrap_differences_use_matching_resamples (test_metrics.MetricsTests.test_paired_bootstrap_differences_use_matching_resamples) ... ok
+test_selects_highest_threshold_meeting_sensitivity_target (test_metrics.MetricsTests.test_selects_highest_threshold_meeting_sensitivity_target) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.176s
+
+OK

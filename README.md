@@ -16,7 +16,11 @@ The final analysis follows the instructor's preliminary feedback:
 - Learning curves use training sizes 50, 100, 200, and 455.
 - Elastic Net is also compared using mean, SE, worst, and all 30 features.
 
-All submitted results follow this repeated nested-CV protocol. Superseded split files, predictions, figures, tables, and model-specific output folders were removed.
+The archived comparison in results/final_nested follows this repeated nested-CV protocol.
+The completed 50-fold Yan analysis in results/yan/random_forest is retained as a
+historical audited run. New common training commands dispatch Random_Forest to
+src/yan/random_forest/train.py through the integration adapter; they do not use
+the archived RF CSV as a training checkpoint.
 
 ## Models
 
@@ -59,10 +63,12 @@ The record ID is used only to align predictions and is never used as a predictor
 |-- src/
 |   |-- data_prep.py                 # Full-cohort cleaning and validation
 |   |-- metrics.py                   # Shared metrics and threshold functions
-|   `-- final_analysis.py            # Repeated nested CV and sensitivity analyses
+|   |-- final_analysis.py            # Shared scheduling and evaluation
+|   `-- yan/random_forest/           # RF training, checkpoints and export adapter
 |-- scripts/
 |   |-- download_and_check_data.py   # Source download and audit
-|   `-- build_final_outputs.py       # Final figures and document drafts
+|   |-- build_final_outputs.py       # Final figures and document drafts
+|   `-- yan/run.py                   # Standalone RF audit/report entry
 |-- docs/
 |   |-- FINAL_REPORT_DRAFT.md
 |   |-- PRESENTATION_OUTLINE.md
@@ -74,20 +80,121 @@ The record ID is used only to align predictions and is never used as a predictor
 |   |-- test_final_analysis.py
 |   `-- test_metrics.py
 `-- results/
-    `-- final_nested/                # The only submitted model-result set
+    |-- final_nested/                # Archived common comparison
+    `-- yan/random_forest/           # Historical RF diagnostics/provenance
 ```
 
-## Reproduce the analysis
+## Install and prepare shared data
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt -r src/yan/random_forest/requirements.txt
 python3 src/data_prep.py
-PYTHONPATH=src python3 src/final_analysis.py nested
-PYTHONPATH=src python3 src/final_analysis.py learning-curves
-PYTHONPATH=src python3 src/final_analysis.py feature-sets
-MPLBACKEND=Agg python3 scripts/build_final_outputs.py
-PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
+
+Use Python 3.12 and run from the repository root. Clone a revision containing the
+new RF module and this README. The historical run's base commit, 06349f8, is
+provenance; that older commit alone does not contain the later integration code.
+On Windows, use python if python3 is not available.
+
+## Check or summarize existing results without training
+
+Verify the historical RF exports and their exact original source snapshots:
+
+```bash
+python3 src/yan/random_forest/verify.py
+```
+
+Recompute the archived common tables from saved predictions:
+
+```bash
+python3 src/final_analysis.py summarize --output results/final_nested --no-import-svm
+```
+
+Summarize does not train any model, but rewrites the summary CSVs in its selected
+directory. The archived RF files remain historical until a new integrated RF run
+is explicitly produced. Successful summarization is not a new training run.
+
+## Fresh training through the common entry
+
+For a complete Random Forest analysis (10 repeats, five outer folds and five
+inner folds), use a new output directory:
+
+```bash
+python3 src/final_analysis.py nested --models Random_Forest --no-resume --no-import-svm --output results/reproduction_rf
+```
+
+The common scheduler calls yan.random_forest.train.run_fold via integration.py.
+Each outer fit searches all 16 settings with 500 trees, selects a threshold from
+the selected configuration's inner OOF, and fits the final forest once.
+It does not fall through to the legacy RF training loop. Do not additionally run
+the standalone RF pilot/run commands for the same common analysis.
+
+To retrain the model families currently supported by the common training loop:
+
+```bash
+python3 src/final_analysis.py nested --models Constant_Baseline Logistic_Regression Ridge_Logistic Elastic_Net Random_Forest Decision_Tree --no-resume --no-import-svm --output results/reproduction_models
+```
+
+**SVM limitation:** this does not retrain Linear_SVM or RBF_SVM. Their current
+common scheduler branches are skipped, and the former SVM import source path is
+absent from main. Saved SVM predictions can be checked, but a full from-scratch
+eight-model workflow still needs the SVM owner's entry and dependencies.
+This RF integration does not change or repair SVM training.
+
+## Resume and shared RF output contract
+
+Resume the same RF run without --no-resume:
+
+```bash
+python3 src/final_analysis.py nested --models Random_Forest --no-import-svm --output results/reproduction_rf
+```
+
+RF resumes only its own checkpoints after checking source, data, configuration,
+environment, labels, assignments and linked fold records. Shared RF predictions
+alone never cause a skip. --no-resume always creates a new RF run ID and ignores
+old checkpoints. Prefer a new output directory; previous native runs and replaced
+shared RF slots are retained as backup evidence.
+
+For output directory OUT, the adapter explicitly converts and publishes:
+
+- OUT/predictions/Random_Forest.csv
+- OUT/outer_fold_metrics_Random_Forest.csv
+- OUT/inner_search_Random_Forest.csv
+
+Detailed checkpoints, selected inner OOF, feature importance and diagnostics stay
+under OUT/yan/random_forest/runs/RUN_ID/. The shared export adds seconds and
+convergence_warnings fields, retaining all detailed diagnostics. The model name
+is Random_Forest, repeats are 1-10, folds are 0-4 and candidates are 0-15.
+
+OUT/random_forest_export.json binds all three files to one run ID and their
+SHA-256 hashes. Mixed files or incomplete publication block common summarization.
+After summarization it records summary_status=complete and the RF run ID used by
+the combined tables. Only one Random_Forest enters the comparison; detailed
+personal files are not scanned as a second model.
+
+To rebuild tables later without fitting:
+
+```bash
+python3 src/final_analysis.py summarize --output results/reproduction_rf --no-import-svm
+```
+
+
+## Integration checks and optional later analyses
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+python3 src/yan/random_forest/test_checks.py
+```
+
+The real common-entry integration check used --repeats 1 with five complete
+outer folds, the full 16-setting grid and 500 trees in a separate temporary
+directory. It is an integration check, not the formal 10-repeat analysis.
+Tests also cover RF-only dispatch, unchanged non-RF call signatures, complete
+three-file publication, incomplete/mixed exports and one RF in summaries.
+
+Learning curves and feature-set analyses remain separate stages. The existing
+build_final_outputs.py also rewrites report drafts and the AI-reflection template;
+protect members' edited documents before using it.
 
 The repeated folds reuse the same 569 records. Their standard deviation and range describe sensitivity to data splitting; they should not be interpreted as uncertainty from ten independent datasets.
 
