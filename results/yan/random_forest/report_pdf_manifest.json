@@ -1,0 +1,42 @@
+[
+  {
+    "markdown": "results/yan/random_forest/report_section.md",
+    "pdf": "results/yan/random_forest/report_section.pdf",
+    "pages": 5,
+    "markdown_sha256": "bce6eb367f11022ea783454410d82d93de510847d6f49aa810dd0c316681401d",
+    "pdf_sha256": "bae643ce0cd1f28f4fa0ce94df136abaeb4430ba377ea6400e70bebdc2d6135a",
+    "rendered_from_current_markdown": true
+  },
+  {
+    "markdown": "results/yan/random_forest/model_report.md",
+    "pdf": "results/yan/random_forest/model_report.pdf",
+    "pages": 8,
+    "markdown_sha256": "d23019b008d389d0172f144bdc7762457f7facfa5417c3f3170180a8848fd1cd",
+    "pdf_sha256": "d431b841cc2ee440079a25f316616f11034b0cf338502162df582787223b91c1",
+    "rendered_from_current_markdown": true
+  },
+  {
+    "markdown": "results/yan/random_forest/results_explained_zh.md",
+    "pdf": "results/yan/random_forest/results_explained_zh.pdf",
+    "pages": 5,
+    "markdown_sha256": "9f4a223d8c4e4aebb535d460033dbb4cb08103248f4deefba15b5633393e3b26",
+    "pdf_sha256": "74da90d4adba3d61ae5d20a18b48a11c4e49b1b2e59238ef7b8659f323602291",
+    "rendered_from_current_markdown": true
+  },
+  {
+    "markdown": "results/yan/random_forest/handoff_zh.md",
+    "pdf": "results/yan/random_forest/handoff_zh.pdf",
+    "pages": 3,
+    "markdown_sha256": "bb73af0112af3a6641649eaaf383a574d22f5fc586c12e713dd05ba3bcbf3ad1",
+    "pdf_sha256": "533dd7d1fc202bff0b745338a722356bf382ce6c2866e56c2ff8d574b7d14769",
+    "rendered_from_current_markdown": true
+  },
+  {
+    "markdown": "docs/RANDOM_FOREST_INTEGRATION.md",
+    "pdf": "results/yan/random_forest/integration_handoff_zh.pdf",
+    "pages": 5,
+    "markdown_sha256": "f7ff9a8f7d7b32d73543189273030483abe8903d7cb57f40bc1687b550be1ff7",
+    "pdf_sha256": "01a9b56aaa208b3115205f9b79a73f50ad22d70772a8881c334a26bbbc905bf9",
+    "rendered_from_current_markdown": true
+  }
+]

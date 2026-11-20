@@ -1,0 +1,12 @@
+check,existing,execution,proposal,open_issue
+Data/features,Shared load_data sorts by ID; 30 ordered features,"Reuse, compare raw/clean and M/B labels",yes,none
+Outer CV,Shared _outer_split; seed 707+r; 1-based repeat/0-based fold,Reuse shared generator; independently reconstruct every assignment; verify owner-specific SVM mapping,yes,none
+Inner CV,Regression/shared: 1707+100*r+f; Asher: 1707+5*r+f,Use shared/regression seed rule; retain model-specific seed evidence,yes,SVM inner partitions differ in repeats 2-10; do not claim identical inner folds
+Threshold,Selected candidate inner OOF; highest p with sensitivity>=.95,Reuse select_threshold_target_sensitivity; save selected OOF,yes,OOF used for selection is not independent generalization performance
+Metrics,Shared summarize_prediction_rows pools five folds; row thresholds,"Reuse, independently recompute exported metrics",yes,Generic evaluate_predictions(None) retunes; never call it here
+SVM legacy summary,Asher run_svm_nested.py averages fold metrics,Recompute from verified owner-specific nested predictions pooled by repeat; do not read global summary,yes,Legacy SVM branch repeat tables conflict with pooled-AUROC rule; final main recomputes from predictions
+Undefined ratios,Generic metrics.py fills undefined ratios with 0; final summary uses NaN for PPV/NPV,Use final summary; export undefined as blank,yes,Generic helper is not used for outer evaluation
+RF,"Shared make_model; 500 trees, 16 settings, raw scale",Reuse RF factory with n_jobs=1; parallelize outer tasks only,yes,none
+Resume,Shared resume counts unique IDs only,New run fingerprint and full per-fold checkpoint validation,yes,Existing RF outputs/checkpoints never consumed
+Personal directory,TEAM_WORKFLOW discourages separate formal model sets,User-authorized yan review artifacts pending integration,yes,"Team must replace Random_Forest once, not add duplicate model"
+Ridge comparator,Proposal/common_evaluation stable logistic comparator requires owner justification,No current regression numeric comparison; earlier shared-export attribution superseded,pending owner evidence,Await Haiyi-compatible prediction version and stable comparator/fallback rationale

@@ -1,0 +1,5 @@
+quantity,value,source
+wall_seconds,854.7772692400001,run_manifest.json:sessions
+outer_task_seconds_sum,1653.294127570999,fold_results.csv:total_seconds
+median_outer_task_seconds,33.083710277499904,fold_results.csv:total_seconds
+additional_threshold_model_fit_seconds,0.0,fold_results.csv:threshold_additional_model_fit_seconds

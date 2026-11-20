@@ -1,0 +1,12 @@
+proposal_responsibility,status,evidence
+500 trees / 16 settings,complete,fold_results.csv; inner_cv_results.csv
+10 repeated stratified 5-fold outer / 5-fold inner,complete,oof_predictions.csv; selected_inner_oof.csv; run_manifest.json
+Training-only OOF 95% target; locked outer thresholds,complete,selected_inner_oof.csv; fold_results.csv
+Pooled repeat discrimination and probability quality,complete,report_main_results.csv; report_supplementary_metrics.csv
+Calibration pattern and zero-probability caution,completed explanation,report_calibration_bins.csv; report_probability_extremes.csv
+Training-validation gap and controlled grid contrasts,completed explanation,fold_results.csv; report_parameter_contrasts.csv
+Feature importance and stability,completed explanation,feature_importances.csv; report_feature_stability.csv
+Runtime,complete,report_runtime.csv
+Methods / interpretation / application / limitations,completed writing,report_section.md
+Owner-specific SVM paired comparison,verified owner-specific nested predictions; metrics recomputed from pooled outer records,comparison_provenance.json; owner_* CSV
+Owner-attributed regression comparison,pending,Await Haiyi confirmation/export; no shared-table substitution

@@ -1,0 +1,8 @@
+source_note,report_content,csv_or_record,aggregation
+S1,Design and threshold execution,fold_results.csv; inner_cv_results.csv; selected_inner_oof.csv; oof_predictions.csv,50 outer fits; 16 settings each; locked training-only OOF thresholds
+S2,Primary and supplementary metrics,repeat_metrics.csv; report_main_results.csv; report_supplementary_metrics.csv,Pool 569 validation predictions per repeat; mean/sample SD/min/max over 10 repeats
+S3,Calibration and probability extremes,calibration_points.csv; report_calibration_bins.csv; report_calibration_pattern.csv; report_probability_extremes.csv,Separate quantile bins per repeat; signed group mean minus observed fraction
+S4,Parameter selection and conditional contrasts,inner_cv_results.csv; report_parameter_selection.csv; report_parameter_marginals.csv; report_parameter_contrasts.csv,Selection counts; within-outer-split candidate differences with other grid parameters held fixed
+S5,Training gap and runtime,fold_results.csv; run_manifest.json; report_runtime.csv,Mean within-fit AUROC gap; sum pilot/run session wall seconds separately from task seconds
+S6,Feature importance and stability,feature_importances.csv; report_feature_stability.csv; report_feature_families.csv,50 model-specific rankings; mean/sample SD/range and top-five frequency; descriptive family sums
+S7,Verified owner comparison,comparison_provenance.json; comparison_sources/asher/outer_predictions.csv; owner_* CSV,verified owner-specific nested predictions; metrics recomputed from pooled outer records; paired RF-minus-comparator differences by repeat; regression pending

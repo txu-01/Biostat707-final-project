@@ -1,0 +1,3 @@
+# Additional transitive versions used by this run; install root requirements.txt first.
+joblib==1.6.0
+threadpoolctl==3.8.0
