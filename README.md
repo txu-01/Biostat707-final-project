@@ -178,7 +178,6 @@ To rebuild tables later without fitting:
 python3 src/final_analysis.py summarize --output results/reproduction_rf --no-import-svm
 ```
 
-Detailed integration/review instructions: [Random Forest integration](docs/RANDOM_FOREST_INTEGRATION.md).
 
 ## Integration checks and optional later analyses
 
