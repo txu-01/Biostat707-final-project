@@ -1,4 +1,3 @@
-"""Research prose and Chinese explanation from audited RF-owned tables."""
 import json
 import pandas as pd
 
@@ -32,7 +31,6 @@ def write_text(out,c):
     compare_threshold=""
     compare_interpret="Cross-model conclusions remain pending verified owner-provided predictions."
     compare_source="S7: No eligible owner prediction file is available; numerical cross-model comparisons are pending."
-    chinese_comparison="目前没有通过来源与键值核对的模型负责人预测；跨模型数值比较待整合。"
     owner_audit="- No eligible owner-specific SVM predictions are available to this report run."
     if not refs.empty:
         ref=refs.groupby("model").mean(numeric_only=True)
@@ -62,14 +60,6 @@ def write_text(out,c):
         compare_source=("S7: owner_comparator_repeat_metrics.csv, owner_paired_repeat_differences.csv and "
             "owner_paired_difference_summary.csv, recomputed from the owner-specific nested predictions "
             "recorded in comparison_provenance.json. Regression numerical comparison is pending.")
-        chinese_comparison=("Asher个人nested预测已从其明确版本直接取得并核对。旧80/20结果和按折平均的nested汇总没有用于比较；"
-            "重新合并每轮569条预测，计算同定义指标，且未重训SVM。可用结果和RF减去各SVM的配对差在owner_* CSV及report_model_comparison.csv。"
-            f"RF的平均AUROC分别低{abs(dl.auroc_difference):.4f}和{abs(dr.auroc_difference):.4f}；"
-            f"Brier分别高{dl.brier_score_difference:.4f}和{dr.brier_score_difference:.4f}，log loss也较高。"
-            f"RF每轮FN平均{m.FN:.1f}，两种SVM分别{linear.FN:.1f}和{rbf.FN:.1f}；"
-            f"RF的FP平均{m.FP:.1f}，SVM分别{linear.FP:.1f}和{rbf.FP:.1f}。"
-            "RF较少漏判伴随较多误报，各模型实际敏感度不同，不能说严格相同敏感度下比较。"
-            "这些是配对的描述性差异；没有显著性检验，也不证明等效或临床效用。")
         owner_audit=("- Owner-specific Asher nested predictions were used directly. The 80/20 results and "
             "legacy fold-averaged nested tables were excluded. Metrics were recomputed by model and repeat "
             "after pooling five folds, using stored per-row thresholds.\n"
@@ -246,146 +236,6 @@ Modifications include binary outcome coding, ID sorting, and derived cross-valid
 predictions, diagnostics and summaries for this educational study.
 """
     (out/"model_report.md").write_text(detailed,encoding="utf-8")
-    chinese=f"""# Yan Yan 的 Random Forest：结果解释与 presentation 准备
-
-## 1. 本次分析做了什么
-
-这是按707-proposal.md完成的Random Forest分析。
-使用全部569条记录，其中212条恶性、357条良性，30个原始尺度特征。
-500棵树和16组参数固定；10次重复、每次5折外层CV，
-每个外层训练集内部再做5折调参。阈值只由训练内部OOF选择。
-本次报告修订只读取已完成的输出，没有训练任何模型或改变参数。
-代码复用了经检查的共同数据读取、CV划分、森林构造和评价函数；
-实际执行包含AI辅助，不等于本人独立手写、运行或审核过每一步。
-
-## 2. 主结果怎么讲
-
-{table}
-
-AUROC {m.auroc:.4f}表示在这批记录上的排序表现较好，但不证明概率都可靠。
-AUPRC用average precision，不是另一种积分方式的PR面积。
-每轮先合并5个验证折的569条记录，再计算指标；之后总结10轮。
-FN均值{m.FN:.1f}、FP均值{m.FP:.1f}不是“半个人”，
-而是10轮中整数错误计数的平均值。
-10轮重复使用同一批记录，5690条预测不能说成5690名独立患者。
-来源：repeat_metrics.csv、report_main_results.csv。
-
-## 3. 校准图的实际发现
-
-平均预测恶性概率{m.mean_predicted*100:.2f}%，实际恶性比例
-{m.observed_prevalence*100:.2f}%，总体上接近，但局部偏差可能相互抵消。
-
-- 第三个分位组在全部10轮都高估：组内平均预测
-  {third.mean_pred_min*100:.1f}%–{third.mean_pred_max*100:.1f}%，实际
-  {third.observed_min*100:.1f}%–{third.observed_max*100:.1f}%。
-- 第四组在全部10轮都低估：平均预测
-  {fourth.mean_pred_min*100:.1f}%–{fourth.mean_pred_max*100:.1f}%，实际
-  {fourth.observed_min*100:.1f}%–{fourth.observed_max*100:.1f}%。
-- 最高组也略低估，平均预测约{fifth.mean_pred_min*100:.1f}%–{fifth.mean_pred_max*100:.1f}%，
-  本数据组内实际比例100%；这不保证其他人群也如此。
-- 最低两个组方向不稳定，不能概括成“一直高估”或“一直低估”。
-
-这些数字是各组的均值范围，不是固定概率区间的上下限。
-分组每轮单独形成；概率并列使人数不完全相等，约5组也比较粗。
-有{zero_repeats}轮出现恶性验证记录被给出0概率；
-模型输出0不表示现实中的恶性概率不可能大于0。
-Brier和log loss综合反映概率质量，不能把它们都解释成纯校准误差。
-log loss为计算稳定性临时截断概率，原始导出概率没有改。
-来源：calibration_points.csv、report_calibration_bins.csv、
-report_calibration_pattern.csv、report_probability_extremes.csv。
-
-## 4. 95%阈值不是外层保证
-
-每个外层训练集使用各自的内层OOF概率，选达到至少95%敏感度的最高阈值。
-某条OOF记录的预测模型没有用它拟合，但这些OOF同时用于了选参数，
-因此不能把内层成绩说成独立验证结果。
-参数和阈值确定后才评价外层记录，阈值没有重新调整。
-实际50个阈值范围{threshold_min:.4f}–{threshold_max:.4f}。
-合并后的外层敏感度范围{r.sensitivity.min()*100:.2f}%–{r.sensitivity.max()*100:.2f}%，
-有{below}轮低于95%，照实报告。
-FN是恶性记录被判成阴性；FP是良性记录被判成恶性。
-延迟复核或增加复核只能作为假设性讨论；本研究没有测量后续临床后果。
-来源：fold_results.csv、selected_inner_oof.csv、repeat_metrics.csv。
-
-## 5. 选参数是否稳定
-
-最常选中max_depth={most['max_depth']}、min_samples_leaf={most['min_samples_leaf']}、max_features={most['max_features']}，
-占{int(selection.selected_folds)}/50。无限制深度{unrestricted}/50，sqrt为{sqrt_count}/50；
-叶节点最小样本数1、3、5、10分别选中{leaf_counts[0]}、{leaf_counts[1]}、{leaf_counts[2]}、{leaf_counts[3]}次。
-总共出现{len(c['selection'])}种配置，因此“大方向偏好一致”不等于“每次都选同一配置”。
-固定sqrt和无限制深度时，leaf=1相对leaf=10的平均内层AUROC差为{leaf:+.6f}；
-固定sqrt和leaf=1时，None相对深度3的差为{depth:+.6f}。
-其他设置已控制，但候选模型种子也不同，不能解释成因果效应。
-没有看外层分数后再改网格。
-来源：inner_cv_results.csv、report_parameter_selection.csv、report_parameter_contrasts.csv。
-
-## 6. 为什么有两个验证AUROC数字
-
-训练集resubstitution AUROC平均{f.train_resubstitution_auroc.mean():.4f}，
-50个外层折AUROC的平均{f.validation_auroc.mean():.4f}，
-平均差{f.training_validation_gap.mean():.4f}。
-训练记录已用于拟合，训练成绩偏乐观，这只是诊断。
-正式主结果{m.auroc:.4f}是每轮合并569条OOF后计算AUROC，再平均10轮。
-“先每折算再平均”与“合并预测再算”不同，不能拿它们互相替代。
-没有根据这个差距重新调参。来源：fold_results.csv、repeat_metrics.csv。
-
-## 7. 特征重要性如何解释
-
-主要特征是{feature_names}。
-这五个特征在全部50个训练模型都位于前五，但先后顺序和权重变化。
-大小信息包括半径、周长、面积；轮廓不规则性包括concave_points等。
-重要性是训练模型的impurity-based importance，不是回归系数。
-相关特征可能分摊或替代重要性，不能从中推出方向、独立贡献、因果或具体交互。
-本次没有依据重要性筛选特征或重新拟合。
-来源：feature_importances.csv、report_feature_stability.csv、report_feature_families.csv。
-
-## 8. 运行时间
-
-完整分析记录的wall time为{c['wall']/60:.2f}分钟。
-各外层任务耗时相加为{f.total_seconds.sum()/60:.2f}分钟，因为有并行，
-两者不矛盾，也不能把任务时间简单说成等待时间。
-阈值复用了搜索时的OOF，没有虚构额外一轮OOF训练时间。
-来源：fold_results.csv、run_manifest.json、report_runtime.csv。
-
-## 9. 跨模型比较的边界
-
-{chinese_comparison}
-
-海怡分支有报告和系数审核材料，但目前不能将现有逐条回归预测明确归属为她提供的兼容输出，
-因此回归数值比较暂缓，不能用共同全模型表补位。
-这不判断她是否完成工作，只说明当前可获得的比较输入证据不足。
-需要她提供或明确确认预测版本、方法及稳定回归比较对象。
-来源与版本说明在comparison_provenance.json和report_audit.md。
-
-## 10. 可以怎样做简短presentation
-
-“我负责Random Forest分析。我们按照方案使用500棵树和16组参数，
-在共同的10次重复nested CV中评价，阈值只用训练内部OOF选定。
-平均AUROC约{m.auroc:.4f}，但总体平均概率接近实际比例并不等于局部校准良好。
-阈值下平均每轮漏判{m.FN:.1f}条恶性记录，误报{m.FP:.1f}条良性记录。
-主要特征集中在大小和轮廓信息，但重要性不能解释因果或效应方向。
-这些是历史数据中的诊断分类结果，不证明临床可部署或能预测未来患癌。”
-
-## 11. 老师可能追问
-
-- 为什么nested CV？内层选设置，外层评价整个选择流程。
-- OOF是否完全独立？每条不参与该次拟合，但OOF参加过选参数；最终独立评价来自外层。
-- 为什么验证低于95%？95%只是训练内部目标，外层保持原阈值。
-- 为什么不看到校准偏差就加校准？本次主分析按事先方案，不看结果新增调整。
-- 为什么不说RF优于回归？目前缺少可归属到回归负责人的兼容逐条输出。
-- 为什么不能说严格相同敏感度下比错误？各模型达到的外层敏感度不同。
-- 为什么不是5690名患者？同569条记录每轮预测一次，重复10轮。
-- 特征重要性有正负方向吗？没有，MDI不是效应系数。
-- 你本人贡献是什么？按实际做过的理解、核查、修改和整合填写，AI辅助记录另附。
-
-## 12. 交给报告整合组员什么
-
-交report_section.md和report_main_results.csv作为正式RF章节和简表。
-report_supplementary_metrics.csv保留完整mean、SD、min、max；
-model_report.md保留详细科学说明，comparison_provenance.json保留比较来源。
-上传步骤、代码版本及接口核查放交接/审核材料，不复制进正式研究正文。
-"""
-    (out/"results_explained_zh.md").write_text(chinese,encoding="utf-8")
     coverage=[
         ("500 trees / 16 settings","complete","fold_results.csv; inner_cv_results.csv"),
         ("10 repeated stratified 5-fold outer / 5-fold inner","complete","oof_predictions.csv; selected_inner_oof.csv; run_manifest.json"),
@@ -442,7 +292,6 @@ RF input numbers came only from this run's PRIMARY files listed in report_verifi
 - report_section.md: six-section English research text, with source notes.
 - report_main_results.csv: compact RF table.
 - report_supplementary_metrics.csv: complete repeat mean/SD/min/max.
-- results_explained_zh.md: interpretation and presentation preparation.
 - model_report.md: detailed scientific report, tables and figures.
 - comparison_provenance.json: exact owner source attribution/version and exclusions.
 - report_coverage.csv / report_verification.json: completeness and unchanged-input checks.
