@@ -1,0 +1,517 @@
+{
+  "run_id": "de18f758-4933-45e5-b02c-2c03e6fa06d8",
+  "fingerprint": "5e5daf98943c7a269bd44ad79aad64c84adb09bd0dcf058065eb0c4637c60cf7",
+  "started_utc": "2026-11-19T20:58:16.607192+00:00",
+  "status": "complete_verified",
+  "audit": {
+    "base_commit": "06349f89853e55d9b46b98304e68d6580abafa48",
+    "environment": {
+      "python": "3.12.14",
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "packages": {
+        "numpy": "2.5.3",
+        "pandas": "3.1.0",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.18.1",
+        "matplotlib": "3.11.2",
+        "tabulate": "0.10.0",
+        "joblib": "1.6.0",
+        "threadpoolctl": "3.8.0"
+      }
+    },
+    "data": {
+      "n": 569,
+      "malignant": 212,
+      "benign": 357,
+      "n_features": 30,
+      "features": [
+        "radius_mean",
+        "texture_mean",
+        "perimeter_mean",
+        "area_mean",
+        "smoothness_mean",
+        "compactness_mean",
+        "concavity_mean",
+        "concave_points_mean",
+        "symmetry_mean",
+        "fractal_dimension_mean",
+        "radius_se",
+        "texture_se",
+        "perimeter_se",
+        "area_se",
+        "smoothness_se",
+        "compactness_se",
+        "concavity_se",
+        "concave_points_se",
+        "symmetry_se",
+        "fractal_dimension_se",
+        "radius_worst",
+        "texture_worst",
+        "perimeter_worst",
+        "area_worst",
+        "smoothness_worst",
+        "compactness_worst",
+        "concavity_worst",
+        "concave_points_worst",
+        "symmetry_worst",
+        "fractal_dimension_worst"
+      ],
+      "ordering": "numeric ID ascending",
+      "raw_clean_agreement": true,
+      "exclusions": 0
+    },
+    "input_sha256": {
+      "data/raw/wdbc.data": "d606af411f3e5be8a317a5a8b652b425aaf0ff38ca683d5327ffff94c3695f4a",
+      "data/processed/wdbc_clean.csv": "793b6ccd285e487d79f41573aec27df644f69fa3b9a92eefaba3fef13cb2b136",
+      "707-proposal.md": "92194fb26b0fa3abdc5528bd7c7a8bc494d1e7b8a0a4344698c57577166e9398",
+      "docs/TEAM_WORKFLOW.md": "0088034853393af441672d4efce5a2ec6b0f8ff9a7b78128bedf6b6ae8c8c7c9",
+      "docs/common_evaluation.md": "e0b7975414d5a5bd6e69ce90f8da1ba5a8441fbb2ce2bd4759cfbfde96c303b5",
+      "README.md": "dd7c38840f1d2995a93a07a2fe13b169999eee5bde6a595370126977df91f13e"
+    },
+    "training_source_sha256": {
+      "src/yan/random_forest/train.py": "67e3f97992dd4e25ba5e86e5e31c25fc1bcb3da11dc36ea7523cb1f37fafec16",
+      "src/yan/random_forest/audit.py": "0a07801fe3d066aaa398fb173eee22b794c8db1c9b60cb560687e0424460fbe4",
+      "src/yan/random_forest/__init__.py": "5674fec48cb42abb57d05483a40cf6d6c007eb0947e3a4fda8f0548e28751516",
+      "scripts/yan/run.py": "cb35a93a2788249b046f0df286f2cfa096abe1b47507b60eb5bb3af249ec3774",
+      "src/final_analysis.py": "1660bb5c5791f43f9f7049cd3ee8aa23b58ccd1e885df4eb4288588d8e9a3692",
+      "src/data_prep.py": "59493674e378fad91994fed2fd676f741e3820c582c588d31f303949aea2a247",
+      "src/metrics.py": "79a9da443e103075adeff92ac41ab84e3e6b90113bbceb625ce7ff1c5d4e5b3a",
+      "requirements.txt": "7f869508c1306d0df20f3f453526207d3c99a641b40a75f2ba91258f24a9aaa7"
+    },
+    "outer_mapping_sha256": "e0073a3c79fb6055d320704824418745e3df52b367a205cf1b3e306b5fccdcdc",
+    "inner_mapping_sha256": "aa5ca5c19c613a3e7b32ea4fd80a6de384163dfc025899c50f221f9bb17f8553",
+    "other_model_audit": {
+      "Logistic_Regression": {
+        "status": "matched all 5690 ID/label/repeat/fold keys",
+        "path": "results/final_nested/predictions/Logistic_Regression.csv",
+        "sha256": "ce226247adaefcda0c114f67360428448ca5165431df7384b804868758ca8b23"
+      },
+      "Ridge_Logistic": {
+        "status": "matched all 5690 ID/label/repeat/fold keys",
+        "path": "results/final_nested/predictions/Ridge_Logistic.csv",
+        "sha256": "cfb5bfbc86cb299a7e1bacf43af7e070649f3e63471e53c9e47779bdb046ec16"
+      },
+      "Elastic_Net": {
+        "status": "matched all 5690 ID/label/repeat/fold keys",
+        "path": "results/final_nested/predictions/Elastic_Net.csv",
+        "sha256": "85ad387436d0ecb89392b555d22066e2a394ba9e5a22f32b697d3b8591ee3d0c"
+      },
+      "Linear_SVM": {
+        "status": "matched all 5690 ID/label/repeat/fold keys",
+        "path": "results/final_nested/predictions/Linear_SVM.csv",
+        "sha256": "cc8ee9776fe41d5a38f535b3389402b8a1c6473e5323c3d490232fe32c07cdb8"
+      },
+      "RBF_SVM": {
+        "status": "matched all 5690 ID/label/repeat/fold keys",
+        "path": "results/final_nested/predictions/RBF_SVM.csv",
+        "sha256": "82e48f02bac56aa9e3cb8e8e5fad85ae853b23af77dcc7f4a6834eb6bae0c989"
+      }
+    },
+    "inspected_branch_sources": {
+      "origin/Haiyi-branches:src/final_analysis.py": {
+        "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+        "sha256": "a9cb148196ff8475cc4e48f24bc6d934c77633448931d5e13fd75169ede7e5e6"
+      },
+      "origin/Haiyi-branches:scripts/build_haiyi_logistic_coefficients.py": {
+        "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+        "sha256": "cecd43129434a8cee0dbd1e90806158fe36ee02db089ff569183925b3416167e"
+      },
+      "origin/Haiyi-branches:docs/HAIYI_XIONG_REPORT_SECTION.md": {
+        "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+        "sha256": "257ad35c7842eaef0d5a917e883075c33c7764d2c453be7447ef7b250497cc2f"
+      },
+      "origin/asher/svm-analysis:scripts/run_svm_nested.py": {
+        "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+        "sha256": "19dc463df60e201e76954d18da1f63b02af2eea65284ce2cfb2b1715fc95341e"
+      },
+      "origin/asher/svm-analysis:src/train_svm.py": {
+        "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+        "sha256": "b3e85af64a442b6855ff2d95892e9ed57216ae6685477f0c9daf6e717eba1ad5"
+      },
+      "origin/asher/svm-analysis:src/data_prep.py": {
+        "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+        "sha256": "991cb79ed1550f8cf17cb691e9d045415e4d2521ac547213c7066b9c2d3477e7"
+      }
+    },
+    "rf_grid": [
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 10
+      }
+    ],
+    "existing_rf_results_used": false
+  },
+  "config": {
+    "model": "Random_Forest",
+    "repeats": 10,
+    "outer_folds": 5,
+    "inner_folds": 5,
+    "grid": [
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 10
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 1
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 3
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 5
+      },
+      {
+        "max_depth": null,
+        "max_features": 0.5,
+        "min_samples_leaf": 10
+      }
+    ],
+    "n_estimators": 500,
+    "n_jobs": 1,
+    "outer_task_workers": 2,
+    "target_sensitivity": 0.95,
+    "outer_seed": "707 + zero_based_repeat",
+    "inner_seed": "1707 + 100*zero_based_repeat + fold",
+    "candidate_seed": "inner_seed + 100*candidate + inner_fold",
+    "final_seed": "707 + 10000*zero_based_repeat + 100*fold",
+    "tie_rule": "highest mean inner AUROC; lowest candidate index on exact tie",
+    "probability_column": "lookup classes_==1",
+    "preprocessing": "none",
+    "threshold_oof": "selected candidate same inner OOF; no third layer",
+    "log_loss_clip": [
+      1e-15,
+      0.999999999999999
+    ]
+  },
+  "forest_example_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": null,
+    "criterion": "gini",
+    "max_depth": 3,
+    "max_features": "sqrt",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 500,
+    "n_jobs": 1,
+    "oob_score": false,
+    "random_state": 707,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "commands": [
+    {
+      "utc": "2026-11-19T20:58:17.124540+00:00",
+      "argv": [
+        "scripts/yan/run.py",
+        "pilot"
+      ]
+    },
+    {
+      "utc": "2026-11-19T20:59:09.898602+00:00",
+      "argv": [
+        "scripts/yan/run.py",
+        "run"
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "stage": "pilot",
+      "finished_utc": "2026-11-19T20:58:50.684997+00:00",
+      "wall_seconds": 33.560474817,
+      "newly_fitted_outer_folds": 1
+    },
+    {
+      "stage": "run",
+      "finished_utc": "2026-11-19T21:12:51.115376+00:00",
+      "wall_seconds": 821.2167944230001,
+      "newly_fitted_outer_folds": 49
+    }
+  ],
+  "git_state": "local generated files on local branch; no commit, push or PR",
+  "source_changes": "New src/yan/random_forest and scripts/yan files; shared files unchanged",
+  "verification": {
+    "completed_outer_folds": 50,
+    "expected_outer_folds": 50,
+    "prediction_rows": 5690,
+    "complete": true,
+    "checkpoint_integrity_and_full_fold_alignment": true,
+    "selected_inner_oof_thresholds_recomputed": true,
+    "old_rf_outputs_consumed": false,
+    "repeat_rows": 10,
+    "candidate_rows": 800,
+    "independent_metric_recalculation": true,
+    "all_required_checks_passed": true
+  },
+  "updated_utc": "2026-11-19T21:12:51.115392+00:00",
+  "report_source_sha256": "861755fbb2653018b92977cd045565c0134ec659a981b7ac4e4779d29ab5f34b",
+  "report_generation_seconds": 1.5247822399999222,
+  "reporting_reference_sha256": "cfb5bfbc86cb299a7e1bacf43af7e070649f3e63471e53c9e47779bdb046ec16",
+  "additional_source_sha256": {
+    "scripts/yan/run.py": "cb35a93a2788249b046f0df286f2cfa096abe1b47507b60eb5bb3af249ec3774",
+    "src/yan/random_forest/README.md": "ee79a1ee49020692bf5cf5602ad885337b3b381c177c0d4825d43ba58233c73a",
+    "src/yan/random_forest/__init__.py": "5674fec48cb42abb57d05483a40cf6d6c007eb0947e3a4fda8f0548e28751516",
+    "src/yan/random_forest/audit.py": "0a07801fe3d066aaa398fb173eee22b794c8db1c9b60cb560687e0424460fbe4",
+    "src/yan/random_forest/report.py": "861755fbb2653018b92977cd045565c0134ec659a981b7ac4e4779d29ab5f34b",
+    "src/yan/random_forest/requirements.txt": "c635328e0fdc807791fd062d5f9bf95e943a7a9be8fe33f9a674d24666abb2d7",
+    "src/yan/random_forest/test_checks.py": "08942e8673f509991448e13636ecb889355b8d2c936d9f37e9888ed890d8a9c5",
+    "src/yan/random_forest/train.py": "67e3f97992dd4e25ba5e86e5e31c25fc1bcb3da11dc36ea7523cb1f37fafec16",
+    "src/yan/random_forest/verify.py": "e0a22eb23e142c8ea7667d7fa16a0997909ad7cfb4a17909ef6ae45415eb0ffe"
+  },
+  "git_branch": "yan/random-forest-review",
+  "shared_tracked_files_unchanged": true,
+  "python_executable": "/workspace/work/rf-env/bin/python",
+  "execution_notes": {
+    "native_threadpool_limit": 1,
+    "old_RF_artifacts_read": false,
+    "other_models_trained": false,
+    "official_outputs_rebuilt": false,
+    "pilot_included_in_50_outer_folds": true
+  },
+  "document_export": {
+    "engine": "WeasyPrint 70.0 + pandoc",
+    "scope": "Readable PDF copies only; separate environment from analysis"
+  },
+  "output_files": [
+    "ai_assistance.md",
+    "calibration_points.csv",
+    "checkpoints/repeat_01_fold_0.json",
+    "checkpoints/repeat_01_fold_1.json",
+    "checkpoints/repeat_01_fold_2.json",
+    "checkpoints/repeat_01_fold_3.json",
+    "checkpoints/repeat_01_fold_4.json",
+    "checkpoints/repeat_02_fold_0.json",
+    "checkpoints/repeat_02_fold_1.json",
+    "checkpoints/repeat_02_fold_2.json",
+    "checkpoints/repeat_02_fold_3.json",
+    "checkpoints/repeat_02_fold_4.json",
+    "checkpoints/repeat_03_fold_0.json",
+    "checkpoints/repeat_03_fold_1.json",
+    "checkpoints/repeat_03_fold_2.json",
+    "checkpoints/repeat_03_fold_3.json",
+    "checkpoints/repeat_03_fold_4.json",
+    "checkpoints/repeat_04_fold_0.json",
+    "checkpoints/repeat_04_fold_1.json",
+    "checkpoints/repeat_04_fold_2.json",
+    "checkpoints/repeat_04_fold_3.json",
+    "checkpoints/repeat_04_fold_4.json",
+    "checkpoints/repeat_05_fold_0.json",
+    "checkpoints/repeat_05_fold_1.json",
+    "checkpoints/repeat_05_fold_2.json",
+    "checkpoints/repeat_05_fold_3.json",
+    "checkpoints/repeat_05_fold_4.json",
+    "checkpoints/repeat_06_fold_0.json",
+    "checkpoints/repeat_06_fold_1.json",
+    "checkpoints/repeat_06_fold_2.json",
+    "checkpoints/repeat_06_fold_3.json",
+    "checkpoints/repeat_06_fold_4.json",
+    "checkpoints/repeat_07_fold_0.json",
+    "checkpoints/repeat_07_fold_1.json",
+    "checkpoints/repeat_07_fold_2.json",
+    "checkpoints/repeat_07_fold_3.json",
+    "checkpoints/repeat_07_fold_4.json",
+    "checkpoints/repeat_08_fold_0.json",
+    "checkpoints/repeat_08_fold_1.json",
+    "checkpoints/repeat_08_fold_2.json",
+    "checkpoints/repeat_08_fold_3.json",
+    "checkpoints/repeat_08_fold_4.json",
+    "checkpoints/repeat_09_fold_0.json",
+    "checkpoints/repeat_09_fold_1.json",
+    "checkpoints/repeat_09_fold_2.json",
+    "checkpoints/repeat_09_fold_3.json",
+    "checkpoints/repeat_09_fold_4.json",
+    "checkpoints/repeat_10_fold_0.json",
+    "checkpoints/repeat_10_fold_1.json",
+    "checkpoints/repeat_10_fold_2.json",
+    "checkpoints/repeat_10_fold_3.json",
+    "checkpoints/repeat_10_fold_4.json",
+    "checksums.json",
+    "comparator_repeat_metrics.csv",
+    "consistency_checks.csv",
+    "environment.txt",
+    "extended_verification.json",
+    "feature_family_importances.csv",
+    "feature_family_summary.csv",
+    "feature_importance_summary.csv",
+    "feature_importances.csv",
+    "figures/calibration.png",
+    "figures/feature_importance.png",
+    "figures/inner_parameter_results.png",
+    "figures/parameter_selection.png",
+    "figures/repeat_metrics.png",
+    "figures/training_validation_gap.png",
+    "fold_results.csv",
+    "handoff_zh.md",
+    "handoff_zh.pdf",
+    "inner_cv_results.csv",
+    "inner_fold_assignments.csv",
+    "inner_parameter_summary.csv",
+    "input_audit.json",
+    "interface_audit.md",
+    "model_report.md",
+    "model_report.pdf",
+    "oof_predictions.csv",
+    "outer_fold_assignments.csv",
+    "paired_difference_summary.csv",
+    "paired_repeat_differences.csv",
+    "parameter_contrasts.csv",
+    "parameter_effects.csv",
+    "parameter_selection.csv",
+    "parameter_selection_marginals.csv",
+    "personal_tests.log",
+    "pilot.log",
+    "repeat_metrics.csv",
+    "run.log",
+    "run_manifest.json",
+    "selected_inner_oof.csv",
+    "shared_tests.log",
+    "source_changes.patch",
+    "summary_metrics.csv",
+    "verification.json",
+    "verification.log"
+  ]
+}

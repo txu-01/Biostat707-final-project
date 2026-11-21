@@ -1,0 +1,9 @@
+{
+  "base_main_plus_zip": true,
+  "report_only_command_passed": true,
+  "new_report_tests_passed": 5,
+  "english_chinese_and_tables_reproduced_exactly": true,
+  "pdf_markdown_sha256_links_valid": true,
+  "primary_csv_unchanged": true,
+  "no_models_fitted": true
+}

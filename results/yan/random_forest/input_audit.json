@@ -1,0 +1,214 @@
+{
+  "base_commit": "06349f89853e55d9b46b98304e68d6580abafa48",
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "packages": {
+      "numpy": "2.5.3",
+      "pandas": "3.1.0",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.18.1",
+      "matplotlib": "3.11.2",
+      "tabulate": "0.10.0",
+      "joblib": "1.6.0",
+      "threadpoolctl": "3.8.0"
+    }
+  },
+  "data": {
+    "n": 569,
+    "malignant": 212,
+    "benign": 357,
+    "n_features": 30,
+    "features": [
+      "radius_mean",
+      "texture_mean",
+      "perimeter_mean",
+      "area_mean",
+      "smoothness_mean",
+      "compactness_mean",
+      "concavity_mean",
+      "concave_points_mean",
+      "symmetry_mean",
+      "fractal_dimension_mean",
+      "radius_se",
+      "texture_se",
+      "perimeter_se",
+      "area_se",
+      "smoothness_se",
+      "compactness_se",
+      "concavity_se",
+      "concave_points_se",
+      "symmetry_se",
+      "fractal_dimension_se",
+      "radius_worst",
+      "texture_worst",
+      "perimeter_worst",
+      "area_worst",
+      "smoothness_worst",
+      "compactness_worst",
+      "concavity_worst",
+      "concave_points_worst",
+      "symmetry_worst",
+      "fractal_dimension_worst"
+    ],
+    "ordering": "numeric ID ascending",
+    "raw_clean_agreement": true,
+    "exclusions": 0
+  },
+  "input_sha256": {
+    "data/raw/wdbc.data": "d606af411f3e5be8a317a5a8b652b425aaf0ff38ca683d5327ffff94c3695f4a",
+    "data/processed/wdbc_clean.csv": "793b6ccd285e487d79f41573aec27df644f69fa3b9a92eefaba3fef13cb2b136",
+    "707-proposal.md": "92194fb26b0fa3abdc5528bd7c7a8bc494d1e7b8a0a4344698c57577166e9398",
+    "docs/TEAM_WORKFLOW.md": "0088034853393af441672d4efce5a2ec6b0f8ff9a7b78128bedf6b6ae8c8c7c9",
+    "docs/common_evaluation.md": "e0b7975414d5a5bd6e69ce90f8da1ba5a8441fbb2ce2bd4759cfbfde96c303b5",
+    "README.md": "dd7c38840f1d2995a93a07a2fe13b169999eee5bde6a595370126977df91f13e"
+  },
+  "training_source_sha256": {
+    "src/yan/random_forest/train.py": "67e3f97992dd4e25ba5e86e5e31c25fc1bcb3da11dc36ea7523cb1f37fafec16",
+    "src/yan/random_forest/audit.py": "0a07801fe3d066aaa398fb173eee22b794c8db1c9b60cb560687e0424460fbe4",
+    "src/yan/random_forest/__init__.py": "5674fec48cb42abb57d05483a40cf6d6c007eb0947e3a4fda8f0548e28751516",
+    "scripts/yan/run.py": "cb35a93a2788249b046f0df286f2cfa096abe1b47507b60eb5bb3af249ec3774",
+    "src/final_analysis.py": "1660bb5c5791f43f9f7049cd3ee8aa23b58ccd1e885df4eb4288588d8e9a3692",
+    "src/data_prep.py": "59493674e378fad91994fed2fd676f741e3820c582c588d31f303949aea2a247",
+    "src/metrics.py": "79a9da443e103075adeff92ac41ab84e3e6b90113bbceb625ce7ff1c5d4e5b3a",
+    "requirements.txt": "7f869508c1306d0df20f3f453526207d3c99a641b40a75f2ba91258f24a9aaa7"
+  },
+  "outer_mapping_sha256": "e0073a3c79fb6055d320704824418745e3df52b367a205cf1b3e306b5fccdcdc",
+  "inner_mapping_sha256": "aa5ca5c19c613a3e7b32ea4fd80a6de384163dfc025899c50f221f9bb17f8553",
+  "other_model_audit": {
+    "Logistic_Regression": {
+      "status": "matched all 5690 ID/label/repeat/fold keys",
+      "path": "results/final_nested/predictions/Logistic_Regression.csv",
+      "sha256": "ce226247adaefcda0c114f67360428448ca5165431df7384b804868758ca8b23"
+    },
+    "Ridge_Logistic": {
+      "status": "matched all 5690 ID/label/repeat/fold keys",
+      "path": "results/final_nested/predictions/Ridge_Logistic.csv",
+      "sha256": "cfb5bfbc86cb299a7e1bacf43af7e070649f3e63471e53c9e47779bdb046ec16"
+    },
+    "Elastic_Net": {
+      "status": "matched all 5690 ID/label/repeat/fold keys",
+      "path": "results/final_nested/predictions/Elastic_Net.csv",
+      "sha256": "85ad387436d0ecb89392b555d22066e2a394ba9e5a22f32b697d3b8591ee3d0c"
+    },
+    "Linear_SVM": {
+      "status": "matched all 5690 ID/label/repeat/fold keys",
+      "path": "results/final_nested/predictions/Linear_SVM.csv",
+      "sha256": "cc8ee9776fe41d5a38f535b3389402b8a1c6473e5323c3d490232fe32c07cdb8"
+    },
+    "RBF_SVM": {
+      "status": "matched all 5690 ID/label/repeat/fold keys",
+      "path": "results/final_nested/predictions/RBF_SVM.csv",
+      "sha256": "82e48f02bac56aa9e3cb8e8e5fad85ae853b23af77dcc7f4a6834eb6bae0c989"
+    }
+  },
+  "inspected_branch_sources": {
+    "origin/Haiyi-branches:src/final_analysis.py": {
+      "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+      "sha256": "a9cb148196ff8475cc4e48f24bc6d934c77633448931d5e13fd75169ede7e5e6"
+    },
+    "origin/Haiyi-branches:scripts/build_haiyi_logistic_coefficients.py": {
+      "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+      "sha256": "cecd43129434a8cee0dbd1e90806158fe36ee02db089ff569183925b3416167e"
+    },
+    "origin/Haiyi-branches:docs/HAIYI_XIONG_REPORT_SECTION.md": {
+      "commit": "0e51a3a63d545a9f69b7deca4fe58341c86b2aa4",
+      "sha256": "257ad35c7842eaef0d5a917e883075c33c7764d2c453be7447ef7b250497cc2f"
+    },
+    "origin/asher/svm-analysis:scripts/run_svm_nested.py": {
+      "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+      "sha256": "19dc463df60e201e76954d18da1f63b02af2eea65284ce2cfb2b1715fc95341e"
+    },
+    "origin/asher/svm-analysis:src/train_svm.py": {
+      "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+      "sha256": "b3e85af64a442b6855ff2d95892e9ed57216ae6685477f0c9daf6e717eba1ad5"
+    },
+    "origin/asher/svm-analysis:src/data_prep.py": {
+      "commit": "56e526017a9696c81f3b788c9b7ea0ad85116c6c",
+      "sha256": "991cb79ed1550f8cf17cb691e9d045415e4d2521ac547213c7066b9c2d3477e7"
+    }
+  },
+  "rf_grid": [
+    {
+      "max_depth": 3,
+      "max_features": "sqrt",
+      "min_samples_leaf": 1
+    },
+    {
+      "max_depth": 3,
+      "max_features": "sqrt",
+      "min_samples_leaf": 3
+    },
+    {
+      "max_depth": 3,
+      "max_features": "sqrt",
+      "min_samples_leaf": 5
+    },
+    {
+      "max_depth": 3,
+      "max_features": "sqrt",
+      "min_samples_leaf": 10
+    },
+    {
+      "max_depth": 3,
+      "max_features": 0.5,
+      "min_samples_leaf": 1
+    },
+    {
+      "max_depth": 3,
+      "max_features": 0.5,
+      "min_samples_leaf": 3
+    },
+    {
+      "max_depth": 3,
+      "max_features": 0.5,
+      "min_samples_leaf": 5
+    },
+    {
+      "max_depth": 3,
+      "max_features": 0.5,
+      "min_samples_leaf": 10
+    },
+    {
+      "max_depth": null,
+      "max_features": "sqrt",
+      "min_samples_leaf": 1
+    },
+    {
+      "max_depth": null,
+      "max_features": "sqrt",
+      "min_samples_leaf": 3
+    },
+    {
+      "max_depth": null,
+      "max_features": "sqrt",
+      "min_samples_leaf": 5
+    },
+    {
+      "max_depth": null,
+      "max_features": "sqrt",
+      "min_samples_leaf": 10
+    },
+    {
+      "max_depth": null,
+      "max_features": 0.5,
+      "min_samples_leaf": 1
+    },
+    {
+      "max_depth": null,
+      "max_features": 0.5,
+      "min_samples_leaf": 3
+    },
+    {
+      "max_depth": null,
+      "max_features": 0.5,
+      "min_samples_leaf": 5
+    },
+    {
+      "max_depth": null,
+      "max_features": 0.5,
+      "min_samples_leaf": 10
+    }
+  ],
+  "existing_rf_results_used": false
+}

@@ -1,0 +1,29 @@
+usage: final_analysis.py [-h] [--output OUTPUT] [--repeats REPEATS]
+                         [--outer-folds OUTER_FOLDS]
+                         [--inner-folds INNER_FOLDS] [--no-resume]
+                         [--no-import-svm]
+                         [--models {Constant_Baseline,Logistic_Regression,Ridge_Logistic,Elastic_Net,Random_Forest,Decision_Tree,Linear_SVM,RBF_SVM} [{Constant_Baseline,Logistic_Regression,Ridge_Logistic,Elastic_Net,Random_Forest,Decision_Tree,Linear_SVM,RBF_SVM} ...]]
+                         {nested,summarize,learning-curves,feature-sets,all}
+
+Unified analyses requested in the preliminary BIOSTAT 707 feedback. The
+primary and only model-comparison analysis is repeated nested cross-validation
+on all 569 records. This module deliberately centralizes the validation
+protocol while keeping the prespecified model families and tuning grids from
+the proposal. It also provides two additional analyses requested by the
+instructor: * learning curves at training sizes 50, 100, 200, and 455; and * a
+mean/SE/worst/all feature-set comparison using Elastic Net. Run from the
+repository root. Outputs are checkpointed by repeat so an interrupted long run
+can be resumed safely.
+
+positional arguments:
+  {nested,summarize,learning-curves,feature-sets,all}
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT
+  --repeats REPEATS
+  --outer-folds OUTER_FOLDS
+  --inner-folds INNER_FOLDS
+  --no-resume
+  --no-import-svm
+  --models {Constant_Baseline,Logistic_Regression,Ridge_Logistic,Elastic_Net,Random_Forest,Decision_Tree,Linear_SVM,RBF_SVM} [{Constant_Baseline,Logistic_Regression,Ridge_Logistic,Elastic_Net,Random_Forest,Decision_Tree,Linear_SVM,RBF_SVM} ...]

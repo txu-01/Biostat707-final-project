@@ -1,0 +1,13 @@
+{
+  "completed_outer_folds": 50,
+  "expected_outer_folds": 50,
+  "prediction_rows": 5690,
+  "complete": true,
+  "checkpoint_integrity_and_full_fold_alignment": true,
+  "selected_inner_oof_thresholds_recomputed": true,
+  "old_rf_outputs_consumed": false,
+  "repeat_rows": 10,
+  "candidate_rows": 800,
+  "independent_metric_recalculation": true,
+  "all_required_checks_passed": true
+}

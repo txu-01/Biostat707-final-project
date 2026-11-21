@@ -1,0 +1,26 @@
+{
+  "unchanged_functions": [
+    "params_json",
+    "load_data",
+    "make_model",
+    "fit_probability",
+    "tune_inside_outer_training",
+    "summarize_prediction_rows",
+    "_outer_split",
+    "_write_checkpoint",
+    "import_existing_svm_predictions",
+    "consensus_parameters",
+    "fixed_parameter_oof_threshold",
+    "run_learning_curves",
+    "run_feature_set_comparison",
+    "parse_args",
+    "main"
+  ],
+  "changed_functions": [
+    "run_primary_nested",
+    "summarize_primary"
+  ],
+  "svm_importer_unchanged": true,
+  "model_factory_unchanged": true,
+  "tuning_core_unchanged": true
+}

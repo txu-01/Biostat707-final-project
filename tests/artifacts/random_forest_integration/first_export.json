@@ -1,0 +1,28 @@
+{
+  "run_id": "5d5013b8-72f5-4237-b2c5-911fa7495faa",
+  "fingerprint": "60a006b731805febdf34c4334b31f1b18ea6ff92abd600a3b877d21c5696fc7d",
+  "implementation": "yan.random_forest.train.run_fold",
+  "created_utc": "2026-11-19T22:14:03.289383+00:00",
+  "detail_run": "yan/random_forest/runs/5d5013b8-72f5-4237-b2c5-911fa7495faa",
+  "file_sha256": {
+    "predictions/Random_Forest.csv": "a54a3ef6b316bb25c231a9781a9d45e4c529b35edaa9d78c655764cf3ca35b62",
+    "outer_fold_metrics_Random_Forest.csv": "61d339318a750845019a1b23b281e61ec8e54b80d1957e0ef04551d90c08d3f3",
+    "inner_search_Random_Forest.csv": "ec40002494055703bf73ca220cb69e68af32d7d5baddd7399d117bf5520a7e84"
+  },
+  "id_label_fold_sha256": "802e8aac87c5eb1ffbf0cbb20837f0aa4041b102d174ef9ec700c1be3c70533a",
+  "repeats": 1,
+  "outer_folds": 5,
+  "inner_folds": 5,
+  "n_estimators": 500,
+  "prediction_rows": 569,
+  "outer_records": 5,
+  "candidate_records": 80,
+  "formal_ten_repeat_analysis": false,
+  "summary_status": "complete",
+  "summary_sha256": {
+    "outer_predictions_all_models.csv": "a54a3ef6b316bb25c231a9781a9d45e4c529b35edaa9d78c655764cf3ca35b62",
+    "repeat_metrics.csv": "04289e8163d4aeeee6591f245483fbbe71302580f83d046780223f2d3e5fcb5b",
+    "model_summary.csv": "3d284940873aeb335359bf8f8fd99e0cd11a064433088f8391874d2c4a894d4f"
+  },
+  "summary_rf_run_id": "5d5013b8-72f5-4237-b2c5-911fa7495faa"
+}

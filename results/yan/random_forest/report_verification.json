@@ -1,0 +1,39 @@
+{
+  "primary_file_sha256_before": {
+    "oof_predictions.csv": "73b956e6597b81a1a2cd8fa97c854b577738f4b028007930a7572855baad82e2",
+    "fold_results.csv": "bf4ef3017fac86782f7c0b937446f5e5193b7780b1b3172f74fed6860f7483dd",
+    "inner_cv_results.csv": "1297c6a3365c2c19e0d0d3c8f48af5500a42ef4d866d3c01fababdee3f2d7000",
+    "selected_inner_oof.csv": "25167383f1784252ec48e95b5a853cf6b76d7872873df2c25b6f2ab5e330ad4a",
+    "feature_importances.csv": "3e784789cc527fa4705615a262f274fdd6a0c814c258635adb19ccfc4ff374d4",
+    "calibration_points.csv": "fa9bf315a065450191fbf8cf4291b3182653eeef60e381c66217470bd3aae678",
+    "repeat_metrics.csv": "473caa572d078a3082cacc902f500281f7ce3ac77b5305ec721b08efad9772ac",
+    "summary_metrics.csv": "b90f76183bda6bdae6d2df6d69ebd51c8f85cc398f053e851951c200e947f2e5"
+  },
+  "primary_file_sha256_after": {
+    "oof_predictions.csv": "73b956e6597b81a1a2cd8fa97c854b577738f4b028007930a7572855baad82e2",
+    "fold_results.csv": "bf4ef3017fac86782f7c0b937446f5e5193b7780b1b3172f74fed6860f7483dd",
+    "inner_cv_results.csv": "1297c6a3365c2c19e0d0d3c8f48af5500a42ef4d866d3c01fababdee3f2d7000",
+    "selected_inner_oof.csv": "25167383f1784252ec48e95b5a853cf6b76d7872873df2c25b6f2ab5e330ad4a",
+    "feature_importances.csv": "3e784789cc527fa4705615a262f274fdd6a0c814c258635adb19ccfc4ff374d4",
+    "calibration_points.csv": "fa9bf315a065450191fbf8cf4291b3182653eeef60e381c66217470bd3aae678",
+    "repeat_metrics.csv": "473caa572d078a3082cacc902f500281f7ce3ac77b5305ec721b08efad9772ac",
+    "summary_metrics.csv": "b90f76183bda6bdae6d2df6d69ebd51c8f85cc398f053e851951c200e947f2e5"
+  },
+  "primary_files_unchanged": true,
+  "no_models_fitted": true,
+  "rf_repeat_count": 10,
+  "rf_prediction_count": 5690,
+  "candidate_records": 800,
+  "outer_records": 50,
+  "feature_importance_records": 1500,
+  "paired_sources": {
+    "svm": "verified owner-specific nested predictions; metrics recomputed from pooled outer records",
+    "regression": "pending owner-attributed compatible predictions"
+  },
+  "regression_numeric_comparison_included": false,
+  "source_policy": "RF-owned primary records, revised proposal, audited shared infrastructure, and verified owner-specific SVM nested predictions only",
+  "report_source_sha256": {
+    "src/yan/random_forest/reporting.py": "19839911105a0bd33649d2da6b94f85b0159e6d9756b70f0508931a293515a42",
+    "src/yan/random_forest/report_text.py": "a65f2f6a3befcc18afd4f7327b0f2b483811523362c327bc905ce6d94c117305"
+  }
+}

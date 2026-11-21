@@ -64,8 +64,8 @@ def compute_classification_at_threshold(y_true, y_prob, threshold):
 
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-    ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    npv = tn / (tn + fn) if (tn + fn) > 0 else 0.0
+    ppv = tp / (tp + fp) if (tp + fp) > 0 else np.nan
+    npv = tn / (tn + fn) if (tn + fn) > 0 else np.nan
 
     return {
         "threshold": float(threshold),

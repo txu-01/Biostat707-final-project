@@ -1,0 +1,11 @@
+repeat,zero_probability,one_probability,malignant_with_zero,benign_with_one
+1,89,62,1,0
+2,80,59,0,0
+3,57,48,0,0
+4,108,62,0,0
+5,87,51,0,0
+6,42,34,0,0
+7,78,49,0,0
+8,53,40,0,0
+9,62,40,1,0
+10,73,59,1,0
