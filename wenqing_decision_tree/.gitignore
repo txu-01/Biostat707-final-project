@@ -1,0 +1,6 @@
+.venv/
+.mplconfig/
+__pycache__/
+*.py[cod]
+results/.gitkeep
+figures/.gitkeep
