@@ -357,6 +357,9 @@ def run_primary_nested(
             )
             continue
         if model_name in {"Linear_SVM", "RBF_SVM"}:
+            from asher.svm import run_shared_svm
+            run_shared_svm(data, output, [model_name], repeats, outer_folds,
+                           inner_folds, resume=resume)
             continue
         pred_path = prediction_dir / f"{model_name}.csv"
         search_path = output / f"inner_search_{model_name}.csv"
@@ -516,6 +519,8 @@ def import_existing_svm_predictions(output: Path, repeats: int, outer_folds: int
     prediction_dir = output / "predictions"
     prediction_dir.mkdir(parents=True, exist_ok=True)
     for model_name in ["Linear_SVM", "RBF_SVM"]:
+        if (output / f"asher_{model_name}_manifest.json").exists():
+            continue  # A newly trained owner run must not be overwritten by an archive.
         model_rows = rows.loc[rows.model.eq(model_name), sorted(required)].copy()
         _write_checkpoint(model_rows, prediction_dir / f"{model_name}.csv", ["repeat", "id"])
 
@@ -523,6 +528,8 @@ def import_existing_svm_predictions(output: Path, repeats: int, outer_folds: int
     if source_metrics.exists():
         svm_metrics = pd.read_csv(source_metrics)
         for model_name in ["Linear_SVM", "RBF_SVM"]:
+            if (output / f"asher_{model_name}_manifest.json").exists():
+                continue
             model_rows = svm_metrics.loc[svm_metrics.model.eq(model_name)].copy()
             parameter_columns = [c for c in ["C", "gamma"] if c in model_rows]
             model_rows["params_json"] = model_rows[parameter_columns].apply(

@@ -1,0 +1,3 @@
+model,rows,max_probability_difference,max_threshold_difference,matches_1e_7
+Linear_SVM,5690,0.0,0.0,True
+RBF_SVM,5690,0.0,0.0,True

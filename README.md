@@ -135,11 +135,25 @@ To retrain the model families currently supported by the common training loop:
 python3 src/final_analysis.py nested --models Constant_Baseline Logistic_Regression Ridge_Logistic Elastic_Net Random_Forest Decision_Tree --no-resume --no-import-svm --output results/reproduction_models
 ```
 
-**SVM limitation:** this does not retrain Linear_SVM or RBF_SVM. Their current
-common scheduler branches are skipped, and the former SVM import source path is
-absent from main. Saved SVM predictions can be checked, but a full from-scratch
-eight-model workflow still needs the SVM owner's entry and dependencies.
-This RF integration does not change or repair SVM training.
+## Reproduce Asher's SVM analysis
+
+The restored SVM owner entry trains from the cleaned data without the deleted
+legacy import directory. Use an empty output directory and preserve the archive:
+
+```bash
+python3 scripts/asher/run.py --output results/asher/svm_reproduction --repeats 10 --verify-against results/final_nested
+python3 scripts/asher/supplement.py
+python3 scripts/asher/build_owner_report.py
+```
+
+The common entry now also accepts `--models Linear_SVM RBF_SVM` with a new
+`--output` directory. All other models retain their current implementations.
+SVM checkpoints require matching source, data, environment and configuration;
+unattributed archived prediction files are never silently overwritten.
+See [Asher's reproduction guide](docs/ASHER_SVM_REPRODUCIBILITY.md) and
+[SVM report section](docs/ASHER_SVM_REPORT_SECTION.md). The full 100-fit rerun
+matched all 11,380 archived probabilities and thresholds exactly at exported
+precision in the recorded environment; this is not a clinical validation claim.
 
 ## Resume and shared RF output contract
 

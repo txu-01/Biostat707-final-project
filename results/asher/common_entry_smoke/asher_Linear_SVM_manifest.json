@@ -1,0 +1,41 @@
+{
+  "data_sha256": "85ff68769efebeddfd079115442a7f0ad1c6e5791ded7cde5d22030ba3e32af6",
+  "source_sha256": "b08329325ef955965d46f92f0279f349d695fabd3a8c7ef20f0a741c5e7996d8",
+  "repeats": 1,
+  "outer_folds": 5,
+  "inner_folds": 5,
+  "outer_seed": "707+repeat_index",
+  "inner_seed": "1707+5*repeat_index+fold",
+  "calibration_seed": 707,
+  "model_seed": 707,
+  "grid": {
+    "Linear_SVM": {
+      "C": [
+        0.01,
+        0.1,
+        1,
+        10
+      ]
+    },
+    "RBF_SVM": {
+      "C": [
+        0.01,
+        0.1,
+        1,
+        10
+      ],
+      "gamma": [
+        0.001,
+        0.01,
+        0.1,
+        1
+      ]
+    }
+  },
+  "libraries": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1"
+  }
+}

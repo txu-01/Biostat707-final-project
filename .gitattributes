@@ -1,0 +1,4 @@
+# Hash-verified snapshots retain LF; fitting-source hashes require exact bytes.
+results/yan/random_forest/comparison_sources/** text eol=lf
+src/asher/** -text
+scripts/asher/** -text
