@@ -1,8 +1,4 @@
-"""Independent WDBC decision tree analysis. Run from PyCharm or the command line.
 
-Outputs stay beside this script. Figure examples use repeat 1; the tree and
-importance plots use its first outer-training fold, never the validation data.
-"""
 from pathlib import Path
 import sys
 import time
