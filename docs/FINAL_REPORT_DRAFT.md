@@ -73,3 +73,9 @@ PYTHONPATH=src python3 src/final_analysis.py feature-sets
 MPLBACKEND=Agg python3 scripts/build_final_outputs.py
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
+
+
+### Individual disclosures and contributions
+
+- [Tianyi Lu — AI use disclosure](Tianyi_Lu_AI_Use.md)
+- [Tianyi Lu — individual contribution statement](Tianyi_Lu_Contribution.md)
